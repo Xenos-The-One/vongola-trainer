@@ -40,77 +40,105 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-serif: 'Playfair Display', Georgia, serif;
 }
 
+/* Accent color system — consumed by components via var(--vt-accent) */
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  --vt-accent: #FF7A45;
+  --vt-accent-glow: rgba(255, 122, 69, 0.15);
+  --vt-accent-dim: rgba(255, 122, 69, 0.6);
 }
 
-.dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+[data-accent="amber"] {
+  --vt-accent: #E0A82E;
+  --vt-accent-glow: rgba(224, 168, 46, 0.15);
+  --vt-accent-dim: rgba(224, 168, 46, 0.6);
+}
+[data-accent="ocean"] {
+  --vt-accent: #4DA8DA;
+  --vt-accent-glow: rgba(77, 168, 218, 0.15);
+  --vt-accent-dim: rgba(77, 168, 218, 0.6);
+}
+[data-accent="forest"] {
+  --vt-accent: #4CAF50;
+  --vt-accent-glow: rgba(76, 175, 80, 0.15);
+  --vt-accent-dim: rgba(76, 175, 80, 0.6);
+}
+[data-accent="sunset"] {
+  --vt-accent: #FF7A45;
+  --vt-accent-glow: rgba(255, 122, 69, 0.15);
+  --vt-accent-dim: rgba(255, 122, 69, 0.6);
+}
+[data-accent="rose"] {
+  --vt-accent: #EC4899;
+  --vt-accent-glow: rgba(236, 72, 153, 0.15);
+  --vt-accent-dim: rgba(236, 72, 153, 0.6);
+}
+[data-accent="violet"] {
+  --vt-accent: #8B5CF6;
+  --vt-accent-glow: rgba(139, 92, 246, 0.15);
+  --vt-accent-dim: rgba(139, 92, 246, 0.6);
+}
+
+/* Font size system */
+[data-fontsize="S"] { font-size: 14px; }
+[data-fontsize="M"] { font-size: 16px; }
+[data-fontsize="L"] { font-size: 18px; }
+
+/* Dark theme (default) — "Ember & Parchment" */
+:root {
+  --radius: 0.75rem;
+  --primary: #FF7A45;
+  --primary-foreground: #1A1016;
+  --background: #121014;
+  --foreground: #F5F0EB;
+  --card: #1C1820;
+  --card-foreground: #F5F0EB;
+  --popover: #1C1820;
+  --popover-foreground: #F5F0EB;
+  --secondary: #241F28;
+  --secondary-foreground: #C8C0B8;
+  --muted: #2A2530;
+  --muted-foreground: #8A8080;
+  --accent: #2A2530;
+  --accent-foreground: #F5F0EB;
+  --destructive: #DC2626;
+  --destructive-foreground: #FEFEFE;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #FF7A45;
+  --chart-1: #FF7A45;
+  --chart-2: #E0A82E;
+  --chart-3: #4DA8DA;
+  --chart-4: #4CAF50;
+  --chart-5: #EC4899;
+  --sidebar: #1C1820;
+  --sidebar-foreground: #F5F0EB;
+  --sidebar-primary: #FF7A45;
+  --sidebar-primary-foreground: #1A1016;
+  --sidebar-accent: #2A2530;
+  --sidebar-accent-foreground: #F5F0EB;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #FF7A45;
+}
+
+/* Light theme */
+.light {
+  --background: #FDFBF9;
+  --foreground: #1A1016;
+  --card: #FFFFFF;
+  --card-foreground: #1A1016;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1016;
+  --secondary: #F5F0EB;
+  --secondary-foreground: #4A4040;
+  --muted: #F0EBE6;
+  --muted-foreground: #6B6060;
+  --accent: #F5F0EB;
+  --accent-foreground: #1A1016;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.08);
 }
 
 @layer base {
@@ -119,6 +147,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -134,25 +165,13 @@
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
+    max-width: 480px;
   }
 
   .flex {
@@ -160,18 +179,70 @@
     min-width: 0;
   }
 
-  @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
+  /* Companion idle animation */
+  @keyframes companion-bob {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+  }
+
+  .companion-idle {
+    animation: companion-bob 4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .companion-idle {
+      animation: none;
     }
   }
 
-  @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
-    }
+  /* Sky background time-shift */
+  @keyframes sky-shift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
+
+  /* Progress ring */
+  .progress-ring-circle {
+    transition: stroke-dashoffset 0.5s ease-in-out;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  /* Flame confetti burst */
+  @keyframes confetti-fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Check pop animation */
+  @keyframes check-pop {
+    0% { transform: scale(0); }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  .check-pop {
+    animation: check-pop 0.3s ease-out;
+  }
+
+  /* Speech bubble */
+  @keyframes speech-fade {
+    0% { opacity: 0; transform: translateY(4px); }
+    10% { opacity: 1; transform: translateY(0); }
+    90% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-4px); }
+  }
+
+  .speech-bubble {
+    animation: speech-fade 4s ease-in-out;
+  }
+
+  /* Hide scrollbar for status pills */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
