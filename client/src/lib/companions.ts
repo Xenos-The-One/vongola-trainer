@@ -5,12 +5,12 @@
 import type { CompanionDef } from './types';
 
 const SPRITE_BASE = {
-  'cub-sleep': 'https://d2xsxph8kpxj0f.cloudfront.net/310519663368367743/Vcg2kJXJQ5oxBVrHbYgsHP/cub-sleep-37fDqTL28TrQHdNn8zBc49.webp',
-  'cub-awake': 'https://d2xsxph8kpxj0f.cloudfront.net/310519663368367743/Vcg2kJXJQ5oxBVrHbYgsHP/cub-awake-3XTFtWRJW9Vm8JkNfuAGxN.webp',
-  'young-lion': 'https://d2xsxph8kpxj0f.cloudfront.net/310519663368367743/Vcg2kJXJQ5oxBVrHbYgsHP/young-lion-P5Agaij6kN89DcvXapNQfY.webp',
-  'sky-lion': 'https://d2xsxph8kpxj0f.cloudfront.net/310519663368367743/Vcg2kJXJQ5oxBVrHbYgsHP/sky-lion-EphadHxjYWSko6nRQaJNsm.webp',
-  'cambio-forma': 'https://d2xsxph8kpxj0f.cloudfront.net/310519663368367743/Vcg2kJXJQ5oxBVrHbYgsHP/cambio-forma-iceZ62qtXr92wVc8JvCgCp.webp',
-  'hyper-mode': 'https://d2xsxph8kpxj0f.cloudfront.net/310519663368367743/Vcg2kJXJQ5oxBVrHbYgsHP/hyper-mode-T5MiSVFKSiPTBma8spLwDq.webp',
+  'cub-sleep': '/sprites/natsu/cub-sleep.png',
+  'cub-awake': '/sprites/natsu/cub-awake.png',
+  'young-lion': '/sprites/natsu/young-lion.png',
+  'sky-lion': '/sprites/natsu/sky-lion.png',
+  'cambio-forma': '/sprites/natsu/cambio-forma.png',
+  'hyper-mode': '/sprites/natsu/hyper-mode.png',
 };
 
 export const NATSU: CompanionDef = {
