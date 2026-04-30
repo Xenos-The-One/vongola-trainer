@@ -69,6 +69,7 @@ export interface StoreActions {
   setAccent: (accent: AccentKey) => void;
   setTheme: (theme: ThemeMode) => void;
   setFontSize: (fontSize: FontSize) => void;
+  setStarter: (starter: string) => void;
   
   // Workouts
   updateExercise: (category: keyof Store['workouts'], index: number, exercise: Exercise) => void;
@@ -143,6 +144,7 @@ export const useStore = create<AppStore>()(
       setAccent: (accent) => set((state) => ({ user: { ...state.user, accent } })),
       setTheme: (theme) => set((state) => ({ user: { ...state.user, theme } })),
       setFontSize: (fontSize) => set((state) => ({ user: { ...state.user, fontSize } })),
+      setStarter: (starter) => set((state) => ({ user: { ...state.user, starter: starter as any } })),
 
       updateExercise: (category, index, exercise) => {
         set((state) => {

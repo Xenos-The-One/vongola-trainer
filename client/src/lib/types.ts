@@ -7,7 +7,7 @@ export type ThemeMode = 'dark' | 'light';
 
 export type FontSize = 'S' | 'M' | 'L';
 
-export type StarterKey = 'natsu';
+export type StarterKey = 'natsu' | 'uri' | 'kojirou' | 'jirou' | 'kangaryuu' | 'gyudon' | 'roll' | 'mukurou';
 
 export interface Exercise {
   id: string;

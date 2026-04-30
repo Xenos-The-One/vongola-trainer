@@ -2,6 +2,7 @@
 // Design: "Ember & Parchment" — warm cards, clean form controls
 
 import { useStore } from '@/lib/storage';
+import { COMPANIONS } from '@/lib/companions';
 import type { AccentKey, FontSize, ThemeMode } from '@/lib/types';
 import { Check } from 'lucide-react';
 
@@ -20,13 +21,27 @@ const FONT_SIZES: { key: FontSize; label: string; desc: string }[] = [
   { key: 'L', label: 'Large', desc: '18px' },
 ];
 
+// Ordered: Sky → Storm → Rain (Kojirou, Jirou) → Sun → Lightning → Cloud → Mist
 const STARTERS = [
   { id: 'natsu', name: 'Natsu', element: 'Sky', available: true },
-  { id: 'uri', name: 'Uri', element: 'Storm', available: false },
-  { id: 'gyudon', name: 'Gyudon', element: 'Lightning', available: false },
-  { id: 'kojirou', name: 'Kojirou', element: 'Rain', available: false },
-  { id: 'roll', name: 'Roll', element: 'Cloud', available: false },
+  { id: 'uri', name: 'Uri', element: 'Storm', available: true },
+  { id: 'kojirou', name: 'Kojirou', element: 'Rain', available: true },
+  { id: 'jirou', name: 'Jirou', element: 'Rain', available: true },
+  { id: 'kangaryuu', name: 'Kangaryuu', element: 'Sun', available: true },
+  { id: 'gyudon', name: 'Gyuudon', element: 'Lightning', available: true },
+  { id: 'roll', name: 'Roll', element: 'Cloud', available: true },
+  { id: 'mukurou', name: 'Mukurou', element: 'Mist', available: true },
 ];
+
+const ELEMENT_COLORS: Record<string, string> = {
+  Sky: '#FFE066',
+  Storm: '#FF4444',
+  Rain: '#7FCFFF',
+  Sun: '#FFB800',
+  Lightning: '#86EFAC',
+  Cloud: '#C084FC',
+  Mist: '#A78BFA',
+};
 
 export default function Settings() {
   const user = useStore(s => s.user);
@@ -34,6 +49,7 @@ export default function Settings() {
   const setAccent = useStore(s => s.setAccent);
   const setTheme = useStore(s => s.setTheme);
   const setFontSize = useStore(s => s.setFontSize);
+  const setStarter = useStore(s => s.setStarter);
 
   return (
     <div className="pb-24 pt-4">
@@ -120,39 +136,60 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Starter */}
+      {/* Starter Companion */}
       <div className="rounded-xl border border-border bg-card p-4 mb-4">
         <label className="text-sm font-semibold text-card-foreground block mb-3">Companion</label>
         <div className="space-y-2">
-          {STARTERS.map(starter => (
-            <div
-              key={starter.id}
-              className={`flex items-center justify-between rounded-lg border px-3 py-2.5 ${
-                starter.available
-                  ? user.starter === starter.id
-                    ? 'border-[var(--vt-accent)] bg-[var(--vt-accent)]/10'
-                    : 'border-border'
-                  : 'border-border opacity-40'
-              }`}
-            >
-              <div>
-                <span className="text-sm font-medium text-card-foreground">{starter.name}</span>
-                <span className="text-xs text-muted-foreground ml-2">{starter.element}</span>
-              </div>
-              {!starter.available && (
-                <span className="text-[10px] text-muted-foreground italic">Coming soon</span>
-              )}
-              {starter.available && user.starter === starter.id && (
-                <Check size={14} style={{ color: 'var(--vt-accent)' }} />
-              )}
-            </div>
-          ))}
+          {STARTERS.map(starter => {
+            const companion = COMPANIONS[starter.id];
+            const isSelected = user.starter === starter.id;
+            const elementColor = ELEMENT_COLORS[starter.element] || '#888';
+            
+            return (
+              <button
+                key={starter.id}
+                onClick={() => starter.available && setStarter(starter.id)}
+                disabled={!starter.available}
+                className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors text-left ${
+                  starter.available
+                    ? isSelected
+                      ? 'border-[var(--vt-accent)] bg-[var(--vt-accent)]/10'
+                      : 'border-border hover:border-[var(--vt-accent)]/40'
+                    : 'border-border opacity-40 cursor-not-allowed'
+                }`}
+              >
+                {/* Sprite thumbnail */}
+                {companion && (
+                  <img
+                    src={companion.sprites['cub-awake']}
+                    alt={starter.name}
+                    className="w-8 h-8 object-contain"
+                  />
+                )}
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-card-foreground">{starter.name}</span>
+                  <span
+                    className="text-xs ml-2 font-medium"
+                    style={{ color: elementColor }}
+                  >
+                    {starter.element}
+                  </span>
+                </div>
+                {!starter.available && (
+                  <span className="text-[10px] text-muted-foreground italic">Coming soon</span>
+                )}
+                {starter.available && isSelected && (
+                  <Check size={14} style={{ color: 'var(--vt-accent)' }} />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Version info */}
       <div className="text-center py-4">
-        <p className="text-xs text-muted-foreground">Vongola Trainer v1.0</p>
+        <p className="text-xs text-muted-foreground">Vongola Trainer v1.1</p>
         <p className="text-[10px] text-muted-foreground/60 mt-0.5">Data stored locally on this device</p>
       </div>
     </div>

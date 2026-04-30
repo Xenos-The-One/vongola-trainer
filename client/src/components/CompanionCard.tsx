@@ -14,6 +14,17 @@ function getSkyGradient(): string {
   return 'linear-gradient(180deg, #0F1729 0%, #1A2744 50%, #2D3B2D 100%)'; // night navy
 }
 
+// Element-based sky tint color (low opacity overlay)
+const ELEMENT_TINT: Record<string, string> = {
+  sky: '#FFE06620',
+  storm: '#FF444420',
+  rain: '#7FCFFF20',
+  sun: '#FFB80020',
+  lightning: '#86EFAC20',
+  cloud: '#C084FC20',
+  mist: '#A78BFA20',
+};
+
 export default function CompanionCard() {
   const nickname = useStore(s => s.user.nickname);
   const starter = useStore(s => s.user.starter);
@@ -61,6 +72,11 @@ export default function CompanionCard() {
         className="relative flex flex-col items-center justify-center px-4 py-8"
         style={{ background: skyGradient, minHeight: '240px' }}
       >
+        {/* Element tint overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none z-0"
+          style={{ backgroundColor: ELEMENT_TINT[companion.element] || 'transparent' }}
+        />
         {/* Simple ground */}
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#3D5C3A] to-[#5BAD5B]/80" />
 
