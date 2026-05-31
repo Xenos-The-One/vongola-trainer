@@ -13,12 +13,13 @@ import type {
   FontSize,
   BlockState,
   LiftKey,
+  SavedWorkout,
 } from './types';
 import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 function getTodayKey(): string {
   return new Date().toISOString().split('T')[0];
@@ -96,6 +97,12 @@ export interface StoreActions {
 
   // Lift A/B alternation
   setNextLift: (lift: LiftKey) => void;
+
+  // Equipment profile + saved/generated workouts
+  setEquipmentProfile: (equipment: string[]) => void;
+  saveWorkout: (workout: Omit<SavedWorkout, 'id' | 'createdAt'>) => string;
+  deleteSavedWorkout: (id: string) => void;
+  loadWorkoutIntoLift: (lift: LiftKey, exercises: Exercise[]) => void;
 
   // Streak
   getStreak: () => number;
@@ -238,6 +245,24 @@ export const useStore = create<AppStore>()(
 
       setNextLift: (lift) => set(() => ({ nextLift: lift })),
 
+      setEquipmentProfile: (equipment) => set(() => ({ equipmentProfile: equipment })),
+
+      saveWorkout: (workout) => {
+        const id = `sw-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        set((state) => ({
+          savedWorkouts: [{ ...workout, id, createdAt: getTodayKey() }, ...state.savedWorkouts],
+        }));
+        return id;
+      },
+
+      deleteSavedWorkout: (id) =>
+        set((state) => ({ savedWorkouts: state.savedWorkouts.filter((w) => w.id !== id) })),
+
+      loadWorkoutIntoLift: (lift, exercises) =>
+        set((state) => ({
+          workouts: { ...state.workouts, [lift === 'A' ? 'liftA' : 'liftB']: exercises },
+        })),
+
       getStreak: () => {
         return computeStreak(get().days);
       },
@@ -303,6 +328,16 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
           }
         }
       }
+    }
+  }
+
+  // v3 → v4: equipment profile + saved workouts slices.
+  if (version < 4) {
+    if (!Array.isArray(state.equipmentProfile)) {
+      state.equipmentProfile = ['dumbbell', 'band', 'pull-up bar', 'bodyweight'];
+    }
+    if (!Array.isArray(state.savedWorkouts)) {
+      state.savedWorkouts = [];
     }
   }
 

@@ -107,5 +107,7 @@ export function createDefaultStore(): Store {
     log: [],
     prs: {},
     nextLift: 'A',
+    equipmentProfile: ['dumbbell', 'band', 'pull-up bar', 'bodyweight'],
+    savedWorkouts: [],
   };
 }

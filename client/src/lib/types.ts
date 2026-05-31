@@ -67,6 +67,15 @@ export interface PersonalRecord {
   date: string;
 }
 
+/** A named, materialized workout (from the generator, a routine, or built by hand). */
+export interface SavedWorkout {
+  id: string;
+  name: string;
+  createdAt: string;
+  source: 'generated' | 'routine' | 'manual';
+  exercises: Exercise[];
+}
+
 export interface Store {
   user: UserSettings;
   phase: PhaseInfo;
@@ -81,6 +90,10 @@ export interface Store {
   log: LogEntry[];
   prs: Record<string, PersonalRecord>;
   nextLift: LiftKey;
+  /** Equipment the user owns — drives the generator's filter. Stored as Equipment strings. */
+  equipmentProfile: string[];
+  /** Saved/generated workouts the user can load or start. */
+  savedWorkouts: SavedWorkout[];
 }
 
 // Companion system types

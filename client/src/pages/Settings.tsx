@@ -7,6 +7,7 @@ import { useStore } from '@/lib/storage';
 import { COMPANIONS } from '@/lib/companions';
 import type { AccentKey, FontSize, ThemeMode } from '@/lib/types';
 import { exportBackup, parseBackup, applyBackup, resetAllData, getStorageSize } from '@/lib/backup';
+import { EQUIPMENT_OPTIONS, type Equipment } from '@/lib/exercises';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,16 @@ export default function Settings() {
   const setTheme = useStore(s => s.setTheme);
   const setFontSize = useStore(s => s.setFontSize);
   const setStarter = useStore(s => s.setStarter);
+  const equipmentProfile = useStore((s) => s.equipmentProfile);
+  const setEquipmentProfile = useStore((s) => s.setEquipmentProfile);
+
+  const toggleEquipment = (key: Equipment) => {
+    setEquipmentProfile(
+      equipmentProfile.includes(key)
+        ? equipmentProfile.filter((e) => e !== key)
+        : [...equipmentProfile, key]
+    );
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<unknown | null>(null);
@@ -215,6 +226,31 @@ export default function Settings() {
                 {starter.available && isSelected && (
                   <Check size={14} style={{ color: 'var(--vt-accent)' }} />
                 )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Equipment */}
+      <div className="rounded-xl border border-border bg-card p-4 mb-4">
+        <label className="text-sm font-semibold text-card-foreground block mb-1">Equipment</label>
+        <p className="text-[11px] text-muted-foreground mb-3">
+          What you have access to — the generator only picks from these.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {EQUIPMENT_OPTIONS.map(({ key, label }) => {
+            const active = equipmentProfile.includes(key);
+            return (
+              <button
+                key={key}
+                onClick={() => toggleEquipment(key)}
+                className={`flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                  active ? 'border-[var(--vt-accent)] bg-[var(--vt-accent)]/10 text-foreground' : 'border-border text-muted-foreground'
+                }`}
+              >
+                <span>{label}</span>
+                {active && <Check size={12} style={{ color: 'var(--vt-accent)' }} />}
               </button>
             );
           })}
