@@ -91,7 +91,7 @@ export function parseBackup(text: string): ParseResult {
 
   // Always run the migration pipeline, then deep-merge over fresh defaults and
   // coerce every slice to a safe shape so the result satisfies the Store shape.
-  const migrated = migrateStore({ ...(file.data as object) }, file.schemaVersion) as Record<string, unknown>;
+  const migrated = migrateStore({ ...(file.data as object) }, file.schemaVersion) as unknown as Record<string, unknown>;
   return { ok: true, data: mergeOverDefaults(migrated) };
 }
 
