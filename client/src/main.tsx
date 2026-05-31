@@ -1,15 +1,19 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
+
+// Self-hosted fonts (bundled + precached by the PWA) so the app's typography is
+// fully offline-capable and not render-blocked on a third-party request.
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/playfair-display/600.css";
+import "@fontsource/playfair-display/700.css";
+import "@fontsource/playfair-display/800.css";
+
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Register the service worker only in production builds. In dev it shadows Vite's
-// HMR and serves stale assets after refresh; in prod it powers offline + install.
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // SW registration failed, app still works
-    });
-  });
-}
+// The service worker is registered automatically by vite-plugin-pwa
+// (registerType: 'autoUpdate', injectRegister: 'auto') in production builds.

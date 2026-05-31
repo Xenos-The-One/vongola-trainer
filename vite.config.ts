@@ -1,5 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
@@ -201,7 +202,25 @@ function vitePluginStorageProxy(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  vitePluginManusDebugCollector(),
+  vitePluginStorageProxy(),
+  // PWA: Workbox precaches every hashed build asset (JS/CSS/fonts/sprites/icons)
+  // and auto-versions its caches each build — truly offline-capable after first
+  // load, never serving stale assets. Replaces the hand-rolled public/sw.js.
+  VitePWA({
+    registerType: "autoUpdate",
+    injectRegister: "auto",
+    manifest: false, // keep the existing hand-authored manifest + <link> in index.html
+    workbox: {
+      globPatterns: ["**/*.{js,css,html,png,svg,ico,woff,woff2}"],
+      cleanupOutdatedCaches: true,
+      navigateFallback: "/index.html",
+    },
+  }),
+];
 
 export default defineConfig({
   plugins,
