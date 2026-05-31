@@ -62,6 +62,17 @@ function recentlyTrained(log: LogEntry[], days: number): Set<MuscleSlug> {
   return set;
 }
 
+/**
+ * For full-body / upper, the generator must produce at least one of each
+ * movement family — without this, a thin pull pool (e.g. no pull-up bar) lets
+ * push score-stack and you end up with 5 chest exercises calling itself
+ * "Full Body".
+ */
+const REQUIRED_CATEGORIES_BY_SPLIT: Partial<Record<SplitType, ('push' | 'pull' | 'legs')[]>> = {
+  'full-body': ['push', 'pull', 'legs'],
+  upper: ['push', 'pull'],
+};
+
 export function generateWorkout(opts: GenerateOptions): GeneratedWorkout {
   const split = opts.split ? SPLITS.find((s) => s.key === opts.split) : undefined;
   const target =
@@ -86,12 +97,28 @@ export function generateWorkout(opts: GenerateOptions): GeneratedWorkout {
     for (const m of e.primaryMuscles) if (isTarget(m)) s += (covered.get(m) ?? 0) === 0 ? 2 : 0.5;
     for (const m of e.secondaryMuscles) if (isTarget(m)) s += (covered.get(m) ?? 0) === 0 ? 0.5 : 0.2;
     if (e.primaryMuscles.some((m) => recent.has(m))) s -= 1.5;
-    s += Math.random() * 0.6; // variety jitter
+    s += Math.random() * 0.6; // variety jitter — intentional, not a bug
     return s;
   };
 
   const picks: LibraryExercise[] = [];
   const available = [...pool];
+
+  // Pass 1 — satisfy required movement families first so push/pull/legs balance
+  // is structural, not accidental on the scoring jitter.
+  const required = opts.split ? REQUIRED_CATEGORIES_BY_SPLIT[opts.split] ?? [] : [];
+  for (const cat of required) {
+    if (picks.length >= count) break;
+    const candidates = available.filter((e) => e.category === cat);
+    if (candidates.length === 0) continue;
+    candidates.sort((a, b) => score(b) - score(a));
+    const chosen = candidates[0];
+    picks.push(chosen);
+    available.splice(available.indexOf(chosen), 1);
+    chosen.primaryMuscles.forEach((m) => covered.set(m, (covered.get(m) ?? 0) + 1));
+  }
+
+  // Pass 2 — fill remaining slots with the highest-scoring of what's left.
   while (picks.length < count && available.length) {
     available.sort((a, b) => score(b) - score(a));
     const chosen = available.shift()!;
