@@ -1,6 +1,11 @@
-// MuscleMap — front + back anatomical figures shaded by training intensity.
-// Pure/presentational: the caller passes normalized intensities (0..1) per
-// canonical muscle slug. Colors follow the active accent + theme.
+// MuscleMap — front + back anatomical figures.
+//
+// Two color modes:
+//   • intensity (default) — accent-ramped by per-muscle volume 0..1, used on
+//     the Progress > Body heatmap.
+//   • primary-secondary — red for primary, amber for secondary, gray for
+//     untargeted. Matches the convention used by Strong / Hevy / Fitbod and
+//     is more legible for "what does this exercise hit" displays.
 //
 // Region paths approximate the visible shape of each muscle group rather than
 // blob primitives, so the front-deltoid lobe, the lateral-delt sliver on the
@@ -10,39 +15,81 @@
 import { MUSCLE_DISPLAY, type MuscleSlug } from '@/lib/muscles';
 
 interface MuscleMapProps {
-  intensities: Partial<Record<MuscleSlug, number>>;
+  /** Used in colorMode='intensity'. Ignored in primary-secondary mode. */
+  intensities?: Partial<Record<MuscleSlug, number>>;
+  /** Used in colorMode='primary-secondary'. */
+  primary?: MuscleSlug[];
+  /** Used in colorMode='primary-secondary'. */
+  secondary?: MuscleSlug[];
+  colorMode?: 'intensity' | 'primary-secondary';
   view?: 'front' | 'back' | 'both';
   onMuscleTap?: (slug: MuscleSlug) => void;
   selected?: MuscleSlug | null;
   className?: string;
+  /** Show the color legend strip below the figure. */
+  showLegend?: boolean;
 }
 
 const clamp01 = (n: number) => (n < 0 ? 0 : n > 1 ? 1 : n);
 
+/** Primary fill — bright red, matches the reference style. */
+const PRIMARY_FILL = '#EF4444';
+/** Secondary fill — warm amber, clearly distinct from primary at a glance. */
+const SECONDARY_FILL = '#F59E0B';
+
 export default function MuscleMap({
   intensities,
+  primary,
+  secondary,
+  colorMode = 'intensity',
   view = 'both',
   onMuscleTap,
   selected,
   className,
+  showLegend = false,
 }: MuscleMapProps) {
-  // Per-region props: fill ramps the accent by intensity; empty regions use a
-  // faint theme token. Tappable when onMuscleTap is provided.
+  const primarySet = new Set(primary ?? []);
+  const secondarySet = new Set(secondary ?? []);
+
   function region(slug: MuscleSlug) {
-    const t = clamp01(intensities[slug] ?? 0);
-    const active = t > 0;
     const interactive = !!onMuscleTap;
     const isSelected = selected === slug;
+
+    let fill: string;
+    let fillOpacity: number;
+    let ariaLabelExtra: string;
+
+    if (colorMode === 'primary-secondary') {
+      if (primarySet.has(slug)) {
+        fill = PRIMARY_FILL;
+        fillOpacity = 1;
+        ariaLabelExtra = 'primary';
+      } else if (secondarySet.has(slug)) {
+        fill = SECONDARY_FILL;
+        fillOpacity = 1;
+        ariaLabelExtra = 'secondary';
+      } else {
+        fill = 'var(--mm-empty)';
+        fillOpacity = 1;
+        ariaLabelExtra = 'untargeted';
+      }
+    } else {
+      const t = clamp01(intensities?.[slug] ?? 0);
+      fill = t > 0 ? 'var(--vt-accent)' : 'var(--mm-empty)';
+      fillOpacity = t > 0 ? 0.3 + 0.7 * t : 1;
+      ariaLabelExtra = `${Math.round(t * 100)}%`;
+    }
+
     return {
       'data-muscle': slug,
-      fill: active ? 'var(--vt-accent)' : 'var(--mm-empty)',
-      fillOpacity: active ? 0.3 + 0.7 * t : 1,
+      fill,
+      fillOpacity,
       stroke: isSelected ? 'var(--vt-accent)' : 'var(--mm-stroke)',
       strokeWidth: isSelected ? 2 : 0.8,
-      style: { transition: 'fill-opacity 0.3s ease', cursor: interactive ? 'pointer' : 'default' },
+      style: { transition: 'fill-opacity 0.3s ease, fill 0.3s ease', cursor: interactive ? 'pointer' : 'default' },
       role: interactive ? 'button' : undefined,
       tabIndex: interactive ? 0 : undefined,
-      'aria-label': interactive ? `${MUSCLE_DISPLAY[slug]} — ${Math.round(t * 100)}%` : undefined,
+      'aria-label': interactive ? `${MUSCLE_DISPLAY[slug]} — ${ariaLabelExtra}` : undefined,
       onClick: interactive ? () => onMuscleTap!(slug) : undefined,
       onKeyDown: interactive
         ? (e: React.KeyboardEvent) => {
@@ -149,17 +196,17 @@ export default function MuscleMap({
       <path d="M 110 60 L 90 78 L 100 92 L 120 70 Z" {...region('trapezius')} />
       <path d="M 130 60 L 150 78 L 140 92 L 120 70 Z" {...region('trapezius')} />
 
-      {/* Front deltoids — rounded cap on the front of the shoulder */}
-      <path d="M 70 82 C 64 90 62 104 68 116 L 92 110 L 96 90 Z" {...region('front-deltoids')} />
-      <path d="M 170 82 C 176 90 178 104 172 116 L 148 110 L 144 90 Z" {...region('front-deltoids')} />
+      {/* Front deltoids — rounded shoulder cap, swept slightly forward */}
+      <path d="M 72 84 C 62 92 60 110 70 120 C 82 116 92 110 96 92 C 88 84 80 82 72 84 Z" {...region('front-deltoids')} />
+      <path d="M 168 84 C 178 92 180 110 170 120 C 158 116 148 110 144 92 C 152 84 160 82 168 84 Z" {...region('front-deltoids')} />
 
-      {/* Side (lateral) deltoids — outer-edge sliver visible from the front */}
-      <path d="M 50 100 C 46 116 46 132 52 144 L 64 142 L 66 110 Z" {...region('side-deltoids')} />
-      <path d="M 190 100 C 194 116 194 132 188 144 L 176 142 L 174 110 Z" {...region('side-deltoids')} />
+      {/* Side (lateral) deltoids — outer arc visible on the shoulder edge */}
+      <path d="M 56 100 C 48 114 48 132 56 144 C 64 142 68 130 68 116 C 66 108 62 102 56 100 Z" {...region('side-deltoids')} />
+      <path d="M 184 100 C 192 114 192 132 184 144 C 176 142 172 130 172 116 C 174 108 178 102 184 100 Z" {...region('side-deltoids')} />
 
-      {/* Chest — two pec slabs angling toward the sternum */}
-      <path d="M 96 96 L 118 96 L 118 138 Q 108 144 96 138 Q 90 122 96 96 Z" {...region('chest')} />
-      <path d="M 144 96 L 122 96 L 122 138 Q 132 144 144 138 Q 150 122 144 96 Z" {...region('chest')} />
+      {/* Chest — proper pec shape: rounded outer edge, curved bottom, taper to sternum */}
+      <path d="M 100 96 C 108 94 116 95 119 100 L 119 138 C 113 144 102 142 96 134 C 92 122 92 108 100 96 Z" {...region('chest')} />
+      <path d="M 140 96 C 132 94 124 95 121 100 L 121 138 C 127 144 138 142 144 134 C 148 122 148 108 140 96 Z" {...region('chest')} />
 
       {/* Biceps — long upper-arm shape on each side */}
       <path d="M 50 124 C 48 136 50 160 56 178 L 70 178 L 68 124 Z" {...region('biceps')} />
@@ -249,17 +296,36 @@ export default function MuscleMap({
   );
 
   return (
-    <div className={`flex items-stretch justify-center gap-3 ${className ?? ''}`}>
-      {view !== 'back' && (
-        <div className="flex flex-1 flex-col items-center" style={{ maxWidth: 180 }}>
-          <div className="w-full">{Front}</div>
-          <span className="mt-1 text-[10px] text-muted-foreground">Front</span>
-        </div>
-      )}
-      {view !== 'front' && (
-        <div className="flex flex-1 flex-col items-center" style={{ maxWidth: 180 }}>
-          <div className="w-full">{Back}</div>
-          <span className="mt-1 text-[10px] text-muted-foreground">Back</span>
+    <div className={className}>
+      <div className="flex items-stretch justify-center gap-3">
+        {view !== 'back' && (
+          <div className="flex flex-1 flex-col items-center" style={{ maxWidth: 180 }}>
+            <div className="w-full">{Front}</div>
+            <span className="mt-1 text-[10px] text-muted-foreground">Front</span>
+          </div>
+        )}
+        {view !== 'front' && (
+          <div className="flex flex-1 flex-col items-center" style={{ maxWidth: 180 }}>
+            <div className="w-full">{Back}</div>
+            <span className="mt-1 text-[10px] text-muted-foreground">Back</span>
+          </div>
+        )}
+      </div>
+
+      {showLegend && colorMode === 'primary-secondary' && (
+        <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: PRIMARY_FILL }} />
+            Primary
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: SECONDARY_FILL }} />
+            Secondary
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: 'var(--mm-empty)' }} />
+            Untargeted
+          </span>
         </div>
       )}
     </div>

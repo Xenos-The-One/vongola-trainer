@@ -22,14 +22,6 @@ export default function ExerciseDetail({
   exercise: LibraryExercise | null;
   onClose: () => void;
 }) {
-  const intensities: Partial<Record<MuscleSlug, number>> = {};
-  if (exercise) {
-    exercise.primaryMuscles.forEach((m) => (intensities[m] = 1));
-    exercise.secondaryMuscles.forEach((m) => {
-      if ((intensities[m] ?? 0) < 0.5) intensities[m] = 0.5;
-    });
-  }
-
   return (
     <Dialog open={!!exercise} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[88vh] overflow-y-auto">
@@ -51,8 +43,14 @@ export default function ExerciseDetail({
 
             {(exercise.primaryMuscles.length > 0 || exercise.secondaryMuscles.length > 0) && (
               <div className="rounded-xl border border-border bg-card p-3">
-                <MuscleMap intensities={intensities} view="both" />
-                <div className="mt-2 space-y-1">
+                <MuscleMap
+                  colorMode="primary-secondary"
+                  primary={exercise.primaryMuscles}
+                  secondary={exercise.secondaryMuscles}
+                  view="both"
+                  showLegend
+                />
+                <div className="mt-3 space-y-1">
                   {exercise.primaryMuscles.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Primary</span>
@@ -60,7 +58,7 @@ export default function ExerciseDetail({
                         <span
                           key={m}
                           className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
-                          style={{ backgroundColor: 'var(--vt-accent)' }}
+                          style={{ backgroundColor: '#EF4444' }}
                         >
                           {MUSCLE_DISPLAY[m]}
                         </span>
@@ -71,7 +69,13 @@ export default function ExerciseDetail({
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Secondary</span>
                       {exercise.secondaryMuscles.map((m) => (
-                        <Chip key={m}>{MUSCLE_DISPLAY[m]}</Chip>
+                        <span
+                          key={m}
+                          className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                          style={{ backgroundColor: '#F59E0B' }}
+                        >
+                          {MUSCLE_DISPLAY[m]}
+                        </span>
                       ))}
                     </div>
                   )}
