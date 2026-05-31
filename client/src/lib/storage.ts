@@ -22,12 +22,13 @@ import type {
 import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
 import { getLastEntry, parseFirstRep } from './lastPerformance';
+import { todayKey, dateKey } from './date';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
 export const SCHEMA_VERSION = 6;
 
 function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0];
+  return todayKey();
 }
 
 function createEmptyDayState(): DayState {
@@ -54,14 +55,14 @@ function computeCompletionPct(blocks: DayState['blocks']): number {
   return total === 0 ? 0 : Math.round((done / total) * 100);
 }
 
-function computeStreak(days: Record<string, DayState>): number {
+export function computeStreak(days: Record<string, DayState>): number {
   let streak = 0;
   const today = new Date();
 
   for (let i = 0; i < 365; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    const key = date.toISOString().split('T')[0];
+    const key = dateKey(date);
     const day = days[key];
 
     if (i === 0 && !day) break; // today hasn't started

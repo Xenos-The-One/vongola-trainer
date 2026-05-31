@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useStore } from '@/lib/storage';
 import { EXERCISE_LIBRARY } from '@/lib/exercises';
+import { todayKey } from '@/lib/date';
 import type { LogEntry } from '@/lib/types';
 
 interface PickerItem {
@@ -54,7 +55,7 @@ export default function Log() {
   const handleSubmit = () => {
     if (!selectedExercise) return;
     addLogEntry({
-      date: new Date().toISOString().split('T')[0],
+      date: todayKey(),
       exerciseId: selectedExercise,
       sets: sets.map(s => ({ reps: s.reps, weight: s.weight, rpe: s.rpe })),
       notes: notes || undefined,

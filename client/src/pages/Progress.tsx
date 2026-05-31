@@ -10,6 +10,7 @@ import { getLibraryExercise } from '@/lib/exercises';
 import { computeMuscleVolume, type MuscleSplit } from '@/lib/volume';
 import { MUSCLE_DISPLAY, normalizeMuscles, type MuscleSlug } from '@/lib/muscles';
 import { humanizeId } from '@/lib/utils';
+import { dateKey } from '@/lib/date';
 import { getHeatColor } from '@/lib/heat';
 import SegmentedTabs from '@/components/SegmentedTabs';
 import MuscleMap from '@/components/MuscleMap';
@@ -69,7 +70,7 @@ export default function Progress() {
       for (let d = 0; d < 7; d++) {
         const date = new Date(today);
         date.setDate(date.getDate() - (w * 7 + d));
-        const key = date.toISOString().split('T')[0];
+        const key = dateKey(date);
         if (days[key]) {
           totalPct += days[key].completionPct;
           daysCount++;
@@ -87,7 +88,7 @@ export default function Progress() {
     for (let i = 27; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      const key = date.toISOString().split('T')[0];
+      const key = dateKey(date);
       data.push({ date: key, pct: days[key]?.completionPct || 0 });
     }
     return data;

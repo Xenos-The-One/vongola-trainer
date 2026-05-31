@@ -5,6 +5,7 @@
 
 import type { Exercise, Store } from './types';
 import { slugify } from './utils';
+import { todayKey } from './date';
 
 function makeExercise(
   name: string,
@@ -82,7 +83,7 @@ export const COACH_FOCUS_ITEMS = [
 ];
 
 export function createDefaultStore(): Store {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayKey();
   return {
     user: {
       nickname: 'Natsu',

@@ -6,14 +6,11 @@ import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianG
 import { Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore } from '@/lib/storage';
+import { todayKey } from '@/lib/date';
 import type { BodyMetric } from '@/lib/types';
 
 // Default measurement fields (cm). The user can leave any blank.
 const MEASUREMENT_FIELDS = ['waist', 'chest', 'arms', 'thighs'] as const;
-
-function todayKey(): string {
-  return new Date().toISOString().split('T')[0];
-}
 
 type SeriesKey = 'weightKg' | 'bodyFat' | (typeof MEASUREMENT_FIELDS)[number];
 
