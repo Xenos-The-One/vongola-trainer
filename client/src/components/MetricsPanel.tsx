@@ -97,16 +97,24 @@ export default function MetricsPanel() {
       const raw = meas[f];
       if (raw && !Number.isNaN(Number(raw))) measurements[f] = Number(raw);
     }
-    const entry: BodyMetric = {
-      date,
-      weightKg: weight ? Number(weight) : undefined,
-      bodyFat: bodyFat ? Number(bodyFat) : undefined,
-      measurements: Object.keys(measurements).length ? measurements : undefined,
-    };
-    if (entry.weightKg == null && entry.bodyFat == null && !entry.measurements) {
+    const weightKg = weight ? Number(weight) : undefined;
+    const bodyFatVal = bodyFat ? Number(bodyFat) : undefined;
+    if (weightKg == null && bodyFatVal == null && Object.keys(measurements).length === 0) {
       toast.error('Enter at least one value');
       return;
     }
+
+    // Merge into any existing entry for this date so a partial save never wipes
+    // fields the user didn't touch (e.g. adding a measurement to a weigh-in day).
+    const existing = metrics.find((m) => m.date === date);
+    const mergedMeasurements = { ...(existing?.measurements ?? {}), ...measurements };
+    const entry: BodyMetric = {
+      date,
+      weightKg: weightKg ?? existing?.weightKg,
+      bodyFat: bodyFatVal ?? existing?.bodyFat,
+      measurements: Object.keys(mergedMeasurements).length ? mergedMeasurements : undefined,
+    };
+
     upsertMetric(entry);
     toast.success('Measurement saved');
     resetForm();
