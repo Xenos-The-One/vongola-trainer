@@ -19,6 +19,7 @@ import type {
   ActiveSession,
   BodyMetric,
   WeeklyPlan,
+  CustomExercise,
 } from './types';
 import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
@@ -29,7 +30,7 @@ import { suggestNextLoad } from './overload';
 import { defaultWeightStep } from './units';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 function getTodayKey(): string {
   return todayKey();
@@ -114,6 +115,7 @@ export interface StoreActions {
 
   // Equipment profile + saved/generated workouts
   setEquipmentProfile: (equipment: string[]) => void;
+  setEquipmentMaxKg: (equipment: string, maxKg: number | undefined) => void;
   saveWorkout: (workout: Omit<SavedWorkout, 'id' | 'createdAt'>) => string;
   deleteSavedWorkout: (id: string) => void;
   loadWorkoutIntoLift: (lift: LiftKey, exercises: Exercise[]) => void;
@@ -141,6 +143,10 @@ export interface StoreActions {
   // Weekly plan
   setWeeklyPlan: (plan: WeeklyPlan | null) => void;
   advanceWeeklyPlan: () => void;
+
+  // Custom exercises (user-added)
+  addCustomExercise: (ex: Omit<CustomExercise, 'createdAt'>) => void;
+  deleteCustomExercise: (id: string) => void;
 
   // Streak
   getStreak: () => number;
@@ -297,6 +303,17 @@ export const useStore = create<AppStore>()(
 
       setEquipmentProfile: (equipment) => set(() => ({ equipmentProfile: equipment })),
 
+      setEquipmentMaxKg: (equipment, maxKg) =>
+        set((state) => {
+          const next = { ...state.equipmentMax };
+          if (maxKg === undefined || maxKg <= 0 || !Number.isFinite(maxKg)) {
+            delete next[equipment];
+          } else {
+            next[equipment] = maxKg;
+          }
+          return { equipmentMax: next };
+        }),
+
       saveWorkout: (workout) => {
         const id = `sw-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         set((state) => ({
@@ -319,9 +336,24 @@ export const useStore = create<AppStore>()(
         // jumps, not +2.5 kg). Conversion happens at the display layer.
         const units = get().user.units ?? 'kg';
         const stepKg = units === 'kg' ? defaultWeightStep('kg') : 5 / 2.2046226218; // 5 lb → kg
+        const equipmentMax = get().equipmentMax ?? {};
+        // For each exercise: cap the suggested weight at the user's smallest
+        // configured max across the exercise's equipment list. e.g. if a lift
+        // uses dumbbells AND the user set dumbbell max to 20kg, we never
+        // suggest > 20kg even if last session was that weight + overload bump.
+        const capForExercise = (ex: Exercise): number => {
+          if (!ex.equipment?.length) return Infinity;
+          let cap = Infinity;
+          for (const e of ex.equipment) {
+            const max = equipmentMax[e];
+            if (typeof max === 'number' && max > 0 && max < cap) cap = max;
+          }
+          return cap;
+        };
         const active: ActiveExercise[] = exercises.map((ex) => {
           const last = getLastEntry(log, ex.id);
           const targetSets = Math.max(1, ex.sets || 1);
+          const cap = capForExercise(ex);
           const sets: ActiveSet[] = Array.from({ length: targetSets }, (_, i) => {
             const lastSet = last?.sets[i] ?? last?.sets[0] ?? null;
             // Double-progression: bump weight when top of rep range was hit,
@@ -329,7 +361,7 @@ export const useStore = create<AppStore>()(
             const next = suggestNextLoad(lastSet, ex.reps, stepKg, ex.targetWeight ?? 0);
             return {
               reps: next.reps || parseFirstRep(ex.reps),
-              weight: next.weight,
+              weight: Math.min(next.weight, cap),
               rpe: lastSet?.rpe,
               done: false,
             };
@@ -502,6 +534,19 @@ export const useStore = create<AppStore>()(
           return { weeklyPlan: { ...state.weeklyPlan, currentIndex } };
         }),
 
+      addCustomExercise: (ex) =>
+        set((state) => ({
+          customExercises: [
+            ...(state.customExercises ?? []).filter((e) => e.id !== ex.id),
+            { ...ex, createdAt: getTodayKey() },
+          ],
+        })),
+
+      deleteCustomExercise: (id) =>
+        set((state) => ({
+          customExercises: (state.customExercises ?? []).filter((e) => e.id !== id),
+        })),
+
       getStreak: () => {
         return computeStreak(get().days);
       },
@@ -627,6 +672,19 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
   // v8 → v9: weeklyPlan slice for the rotating-plan generator.
   if (version < 9) {
     if (state.weeklyPlan === undefined) state.weeklyPlan = null;
+  }
+
+  // v9 → v10: per-equipment max weight (kg) + custom exercises slice. Caps
+  // the overload prefill so "+2.5 kg next session" can't suggest a weight
+  // you can't actually load, and gives the user a home for exercises that
+  // aren't in the static library.
+  if (version < 10) {
+    if (!state.equipmentMax || typeof state.equipmentMax !== 'object') {
+      state.equipmentMax = {};
+    }
+    if (!Array.isArray(state.customExercises)) {
+      state.customExercises = [];
+    }
   }
 
   // v7 → v8: chore blocks removed. The 5-block "life OS" model (training +

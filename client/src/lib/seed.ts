@@ -34,9 +34,11 @@ export function createDefaultStore(): Store {
     prs: {},
     nextLift: 'A',
     equipmentProfile: ['dumbbell', 'band', 'pull-up bar', 'bodyweight'],
+    equipmentMax: {},
     savedWorkouts: [],
     activeSession: null,
     metrics: [],
     weeklyPlan: null,
+    customExercises: [],
   };
 }

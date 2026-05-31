@@ -4,7 +4,7 @@
 // slugify(name) so historical log/PR entries keep resolving.
 
 import type { MuscleSlug } from './muscles';
-import type { Exercise } from './types';
+import type { Exercise, CustomExercise } from './types';
 
 export type Equipment =
   | 'bodyweight'
@@ -549,8 +549,35 @@ export const EXERCISE_BY_ID: Map<string, LibraryExercise> = new Map(
   EXERCISE_LIBRARY.map((e) => [e.id, e])
 );
 
-export function getLibraryExercise(id: string): LibraryExercise | undefined {
-  return EXERCISE_BY_ID.get(id);
+/**
+ * Resolve an exercise id to its full definition. When `custom` is provided,
+ * user-added exercises are checked after the static library so a custom
+ * exercise can shadow nothing (its id namespace is the same map). Components
+ * that want info-button / muscle-map data for user-added exercises should
+ * pass the customExercises slice from the store.
+ */
+export function getLibraryExercise(id: string, custom?: CustomExercise[]): LibraryExercise | undefined {
+  const lib = EXERCISE_BY_ID.get(id);
+  if (lib) return lib;
+  if (!custom) return undefined;
+  const c = custom.find((e) => e.id === id);
+  if (!c) return undefined;
+  return {
+    id: c.id,
+    name: c.name,
+    primaryMuscles: c.primaryMuscles as MuscleSlug[],
+    secondaryMuscles: c.secondaryMuscles as MuscleSlug[],
+    equipment: c.equipment as Equipment[],
+    category: c.category,
+    mechanic: c.mechanic,
+    difficulty: c.difficulty,
+    unilateral: c.unilateral,
+    cue: c.cue,
+    instructions: c.instructions,
+    videoId: c.videoId,
+    defaultSets: c.defaultSets,
+    defaultReps: c.defaultReps,
+  };
 }
 
 /**

@@ -6,10 +6,11 @@
 // The parent receives the parsed numeric value only when it parses cleanly.
 
 import { useEffect, useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, HelpCircle } from 'lucide-react';
 import type { ActiveSet } from '@/lib/types';
 import { useStore } from '@/lib/storage';
 import { toUnit, fromUnit } from '@/lib/units';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 interface SetRowProps {
   index: number;
@@ -26,12 +27,15 @@ function NumberField({
   label,
   step = 1,
   min = 0,
+  helpText,
 }: {
   value: number;
   onChange: (n: number) => void;
   label: string;
   step?: number;
   min?: number;
+  /** When set, the label gets a tappable (?) that opens a popover with this text. */
+  helpText?: string;
 }) {
   // Local string mirrors the controlled value but lets the user type
   // intermediate states ("", "1.", "0.5") without snap-back to "0".
@@ -68,7 +72,25 @@ function NumberField({
         }}
         className="w-full rounded-md border border-border bg-secondary px-2 py-2 text-center text-sm text-foreground"
       />
-      <span className="mt-0.5 block text-center text-[9px] text-muted-foreground">{label}</span>
+      <div className="mt-0.5 flex items-center justify-center gap-0.5 text-[9px] text-muted-foreground">
+        <span>{label}</span>
+        {helpText && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label={`What is ${label}?`}
+                className="rounded-full p-0.5 hover:text-foreground"
+              >
+                <HelpCircle size={10} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="top" className="w-56 text-xs">
+              {helpText}
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
     </div>
   );
 }
@@ -96,7 +118,13 @@ export default function SetRow({ index, set, canRemove, onChange, onToggleDone, 
           label={units}
           step={weightStep}
         />
-        <NumberField value={set.rpe ?? 0} onChange={(rpe) => onChange({ rpe })} label="RPE" min={0} />
+        <NumberField
+          value={set.rpe ?? 0}
+          onChange={(rpe) => onChange({ rpe })}
+          label="RPE"
+          min={0}
+          helpText="Rate of Perceived Exertion (1–10). 10 = couldn't have done another rep · 9 = 1 in the tank · 8 = 2 in the tank · 7 = comfortable working set. Optional — leave at 0 to skip."
+        />
       </div>
       <button
         onClick={onToggleDone}

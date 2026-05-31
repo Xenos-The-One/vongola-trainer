@@ -20,6 +20,7 @@ import { weeksSince } from '@/lib/date';
 import SegmentedTabs from '@/components/SegmentedTabs';
 import MuscleMap from '@/components/MuscleMap';
 import ExerciseDetail from '@/components/ExerciseDetail';
+import CustomExerciseForm from '@/components/CustomExerciseForm';
 
 /* ----------------------------- Plan (templates) ----------------------------- */
 
@@ -336,13 +337,27 @@ function RoutinesTab({ onDetail }: { onDetail: (ex: LibraryExercise) => void }) 
 
 function LibraryTab({ onDetail }: { onDetail: (ex: LibraryExercise) => void }) {
   const [query, setQuery] = useState('');
+  const customExercises = useStore((s) => s.customExercises);
+  const deleteCustomExercise = useStore((s) => s.deleteCustomExercise);
+  const [showAdd, setShowAdd] = useState(false);
+
+  // Merge static + custom for search; custom shadowed by static when ids collide.
+  const merged = useMemo(() => {
+    const seen = new Set(EXERCISE_LIBRARY.map((e) => e.id));
+    const customLib = customExercises
+      .filter((c) => !seen.has(c.id))
+      .map((c) => getLibraryExercise(c.id, customExercises))
+      .filter((e): e is LibraryExercise => !!e);
+    return [...EXERCISE_LIBRARY, ...customLib];
+  }, [customExercises]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return EXERCISE_LIBRARY;
-    return EXERCISE_LIBRARY.filter(
-      (e) => e.name.toLowerCase().includes(q) || e.primaryMuscles.some((m) => MUSCLE_DISPLAY[m].toLowerCase().includes(q))
+    if (!q) return merged;
+    return merged.filter(
+      (e) => e.name.toLowerCase().includes(q) || e.primaryMuscles.some((m) => MUSCLE_DISPLAY[m]?.toLowerCase().includes(q))
     );
-  }, [query]);
+  }, [query, merged]);
 
   return (
     <div>
@@ -355,6 +370,50 @@ function LibraryTab({ onDetail }: { onDetail: (ex: LibraryExercise) => void }) {
           className="w-full rounded-lg border border-border bg-secondary pl-9 pr-3 py-2 text-sm text-foreground"
         />
       </div>
+
+      {/* Add your own */}
+      <div className="mb-3 rounded-xl border border-border bg-card overflow-hidden">
+        <button
+          onClick={() => setShowAdd((s) => !s)}
+          className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-secondary/30"
+        >
+          <div>
+            <h3 className="text-sm font-semibold text-card-foreground">Add your own exercise</h3>
+            <p className="text-[11px] text-muted-foreground">
+              {customExercises.length === 0
+                ? 'For anything not in the library.'
+                : `${customExercises.length} custom · tap to add another.`}
+            </p>
+          </div>
+          {showAdd ? <X size={16} className="text-muted-foreground" /> : <ChevronRight size={16} className="text-muted-foreground" />}
+        </button>
+        {showAdd && (
+          <div className="border-t border-border px-4 py-3">
+            <CustomExerciseForm onSaved={() => setShowAdd(false)} />
+          </div>
+        )}
+        {customExercises.length > 0 && (
+          <div className="border-t border-border px-4 py-2">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Your custom exercises</p>
+            {customExercises.map((c) => (
+              <div key={c.id} className="flex items-center justify-between py-1.5">
+                <span className="text-sm text-card-foreground">{c.name}</span>
+                <button
+                  onClick={() => {
+                    deleteCustomExercise(c.id);
+                    toast.success('Removed');
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label={`Delete ${c.name}`}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="mb-2 text-[11px] text-muted-foreground">{filtered.length} exercises</p>
         {filtered.map((ex) => (

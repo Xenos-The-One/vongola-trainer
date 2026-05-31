@@ -8,6 +8,7 @@ import { COMPANIONS } from '@/lib/companions';
 import type { AccentKey, FontSize, ThemeMode } from '@/lib/types';
 import { exportBackup, parseBackup, applyBackup, resetAllData, getStorageSize } from '@/lib/backup';
 import { EQUIPMENT_OPTIONS, type Equipment } from '@/lib/exercises';
+import { fromUnit, toUnit } from '@/lib/units';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,8 @@ export default function Settings() {
   const setUnits = useStore(s => s.setUnits);
   const equipmentProfile = useStore((s) => s.equipmentProfile);
   const setEquipmentProfile = useStore((s) => s.setEquipmentProfile);
+  const equipmentMax = useStore((s) => s.equipmentMax);
+  const setEquipmentMaxKg = useStore((s) => s.setEquipmentMaxKg);
   const units = user.units ?? 'kg';
 
   const toggleEquipment = (key: Equipment) => {
@@ -261,9 +264,10 @@ export default function Settings() {
       <div className="rounded-xl border border-border bg-card p-4 mb-4">
         <label className="text-sm font-semibold text-card-foreground block mb-1">Equipment</label>
         <p className="text-[11px] text-muted-foreground mb-3">
-          What you have access to — the generator only picks from these.
+          What you have access to — the generator only picks from these. For
+          loaded categories, set your max so overload suggestions cap there.
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 mb-3">
           {EQUIPMENT_OPTIONS.map(({ key, label }) => {
             const active = equipmentProfile.includes(key);
             return (
@@ -279,6 +283,43 @@ export default function Settings() {
               </button>
             );
           })}
+        </div>
+
+        {/* Per-equipment max load — only for categories where loading matters. */}
+        <div className="border-t border-border pt-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Max usable load</p>
+          {(['dumbbell', 'barbell', 'kettlebell', 'cable', 'machine'] as Equipment[])
+            .filter((eq) => equipmentProfile.includes(eq))
+            .map((eq) => {
+              const label = EQUIPMENT_OPTIONS.find((o) => o.key === eq)?.label ?? eq;
+              const kg = equipmentMax[eq];
+              const displayVal = kg === undefined ? '' : String(Math.round(toUnit(kg, units) * 10) / 10);
+              return (
+                <div key={eq} className="flex items-center gap-2">
+                  <label className="flex-1 text-xs text-card-foreground">{label}</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="—"
+                    value={displayVal}
+                    onChange={(e) => {
+                      const v = e.target.value === '' ? undefined : Number(e.target.value);
+                      if (v === undefined) setEquipmentMaxKg(eq, undefined);
+                      else if (Number.isFinite(v) && v > 0) setEquipmentMaxKg(eq, fromUnit(v, units));
+                    }}
+                    className="w-20 rounded-md border border-border bg-secondary px-2 py-1.5 text-center text-sm text-foreground"
+                    step={units === 'kg' ? 1 : 5}
+                    min={0}
+                  />
+                  <span className="w-6 text-xs text-muted-foreground">{units}</span>
+                </div>
+              );
+            })}
+          {!(['dumbbell', 'barbell', 'kettlebell', 'cable', 'machine'] as Equipment[]).some((eq) => equipmentProfile.includes(eq)) && (
+            <p className="text-[11px] text-muted-foreground italic">
+              Enable a loaded equipment category above to set a max weight.
+            </p>
+          )}
         </div>
       </div>
 

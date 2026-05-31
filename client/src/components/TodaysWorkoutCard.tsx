@@ -22,6 +22,7 @@ interface TodaysWorkoutCardProps {
 export default function TodaysWorkoutCard({ title, subtitle, exercises }: TodaysWorkoutCardProps) {
   const log = useStore((s) => s.log);
   const units = useStore((s) => s.user.units ?? 'kg');
+  const customExercises = useStore((s) => s.customExercises);
   // Subscribe to the underlying day slice directly. Calling
   // `s.getTodayState()` inside the selector returned a fresh object every
   // render, which Zustand interpreted as a state change → infinite loop.
@@ -42,7 +43,7 @@ export default function TodaysWorkoutCard({ title, subtitle, exercises }: Todays
         <ul className="divide-y divide-border">
           {exercises.map((ex, i) => {
             const Icon = iconForExercise(ex);
-            const lib = getLibraryExercise(ex.id);
+            const lib = getLibraryExercise(ex.id, customExercises);
             const last = summarizeEntry(getLastEntry(log, ex.id), units);
             const isChecked = checked.includes(i);
             const target = ex.targetWeight ? `${ex.sets}×${ex.reps} @ ${ex.targetWeight}${units}` : `${ex.sets}×${ex.reps}`;

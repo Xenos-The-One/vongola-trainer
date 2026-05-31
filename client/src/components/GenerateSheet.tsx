@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { useStore } from '@/lib/storage';
 import { generateWeeklyPlan, MIN_DAYS, MAX_DAYS } from '@/lib/weeklyPlan';
 import type { Equipment } from '@/lib/exercises';
+import { todayKey } from '@/lib/date';
 
 type Mode = 'today' | 'week';
 
@@ -21,6 +22,7 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   const equipment = useStore((s) => s.equipmentProfile) as Equipment[];
   const log = useStore((s) => s.log);
   const setWeeklyPlan = useStore((s) => s.setWeeklyPlan);
+  const savedWorkouts = useStore((s) => s.savedWorkouts);
 
   const [mode, setMode] = useState<Mode>('today');
   const [days, setDays] = useState<number | null>(null);
@@ -39,6 +41,21 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
       const plan = generateWeeklyPlan({ daysPerWeek: days, equipment, log });
       setWeeklyPlan(plan);
     }
+    reset();
+    onOpenChange(false);
+  };
+
+  /** Load a saved workout as today's plan (single-day rotation). */
+  const handleLoadSaved = (workoutId: string) => {
+    const w = savedWorkouts.find((sw) => sw.id === workoutId);
+    if (!w) return;
+    setWeeklyPlan({
+      id: `wp-saved-${w.id}`,
+      createdAt: todayKey(),
+      daysPerWeek: 1,
+      days: [{ index: 0, title: w.name, split: 'full-body', exercises: w.exercises }],
+      currentIndex: 0,
+    });
     reset();
     onOpenChange(false);
   };
@@ -131,6 +148,29 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
               <Wand2 size={14} className="mr-1.5 inline" /> Generate
             </button>
           </div>
+
+          {/* Saved workouts — load one as today's plan instead of generating fresh. */}
+          {savedWorkouts.length > 0 && (
+            <div className="mt-5 border-t border-border pt-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Or load a saved workout</p>
+              <div className="space-y-1.5">
+                {savedWorkouts.slice(0, 6).map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    onClick={() => handleLoadSaved(w.id)}
+                    className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-left transition-colors hover:border-[var(--vt-accent)]/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-card-foreground truncate">{w.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{w.exercises.length} exercises · {w.createdAt}</p>
+                    </div>
+                    <span className="text-[11px] font-medium" style={{ color: 'var(--vt-accent)' }}>Load</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

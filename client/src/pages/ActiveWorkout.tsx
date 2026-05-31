@@ -31,6 +31,7 @@ export default function ActiveWorkout() {
   const [, setLocation] = useLocation();
   const session = useStore((s) => s.activeSession);
   const units = useStore((s) => s.user.units ?? 'kg');
+  const customExercises = useStore((s) => s.customExercises);
   const log = useStore((s) => s.log);
   const updateActiveSet = useStore((s) => s.updateActiveSet);
   const toggleSetDone = useStore((s) => s.toggleSetDone);
@@ -128,7 +129,7 @@ export default function ActiveWorkout() {
             const open = session.currentIndex === exIdx;
             const exDone = ex.sets.length > 0 && ex.sets.every((s) => s.done);
             const last = summarizeEntry(getLastEntry(log, ex.exerciseId), units);
-            const lib = getLibraryExercise(ex.exerciseId);
+            const lib = getLibraryExercise(ex.exerciseId, customExercises);
             return (
               <div key={`${ex.exerciseId}-${exIdx}`} className="overflow-hidden rounded-xl border border-border bg-card">
                 <div className="flex w-full items-center gap-3 px-4 py-3">
