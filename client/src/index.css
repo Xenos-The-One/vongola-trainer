@@ -48,6 +48,13 @@
   --vt-accent: #FF7A45;
   --vt-accent-glow: rgba(255, 122, 69, 0.15);
   --vt-accent-dim: rgba(255, 122, 69, 0.6);
+  /* Muscle map (anatomical heatmap) base colors — theme-aware */
+  --mm-empty: rgba(255, 255, 255, 0.08);
+  --mm-stroke: rgba(255, 255, 255, 0.14);
+}
+.light {
+  --mm-empty: rgba(0, 0, 0, 0.06);
+  --mm-stroke: rgba(0, 0, 0, 0.12);
 }
 
 [data-accent="amber"] {
@@ -192,6 +199,9 @@
   @media (prefers-reduced-motion: reduce) {
     .companion-idle {
       animation: none;
+    }
+    [data-muscle] {
+      transition: none !important;
     }
   }
 
