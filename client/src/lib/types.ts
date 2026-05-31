@@ -63,8 +63,18 @@ export interface PhaseInfo {
 }
 
 export interface PersonalRecord {
+  /** Max raw weight ever moved at any rep count. */
   value: number;
+  /** Date the max-weight PR was set. */
   date: string;
+  /** Best estimated 1RM (Epley) — captures "rep PR" within a working weight. */
+  bestE1RM?: number;
+  /** Reps of the set that produced bestE1RM. */
+  bestSetReps?: number;
+  /** Weight of the set that produced bestE1RM. */
+  bestSetWeight?: number;
+  /** Date the bestE1RM PR was set. */
+  bestSetDate?: string;
 }
 
 /** A dated body-measurement entry (one logical entry per date; upsert by date). */

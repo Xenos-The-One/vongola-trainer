@@ -23,9 +23,11 @@ import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
 import { getLastEntry, parseFirstRep } from './lastPerformance';
 import { todayKey, dateKey } from './date';
+import { e1RM, bestE1RMSet } from './strength';
+import { suggestNextLoad } from './overload';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 function getTodayKey(): string {
   return todayKey();
@@ -240,14 +242,30 @@ export const useStore = create<AppStore>()(
           log: [...state.log, { ...entry, id }],
         }));
 
-        // Check for PR
-        const maxWeight = Math.max(...entry.sets.map((s) => s.weight));
-        if (maxWeight > 0) {
-          const currentPR = get().prs[entry.exerciseId];
-          if (!currentPR || maxWeight > currentPR.value) {
-            get().updatePR(entry.exerciseId, maxWeight);
-          }
-        }
+        // PR update — two independent records on one entry:
+        //  - max raw weight (legacy "1RM-ish" PR)
+        //  - best e1RM (catches rep PRs at the same working weight)
+        const date = entry.date;
+        const maxWeight = Math.max(0, ...entry.sets.map((s) => s.weight));
+        const best = bestE1RMSet(entry.sets);
+        const bestScore = best ? e1RM(best.weight, best.reps) : 0;
+
+        set((state) => {
+          const current = state.prs[entry.exerciseId];
+          const beatWeight = !current || maxWeight > current.value;
+          const beatE1RM = bestScore > 0 && (!current?.bestE1RM || bestScore > current.bestE1RM);
+          if (!beatWeight && !beatE1RM) return {};
+
+          const next: typeof state.prs[string] = {
+            value: beatWeight ? maxWeight : (current?.value ?? maxWeight),
+            date: beatWeight ? date : (current?.date ?? date),
+            bestE1RM: beatE1RM ? bestScore : current?.bestE1RM,
+            bestSetReps: beatE1RM ? best!.reps : current?.bestSetReps,
+            bestSetWeight: beatE1RM ? best!.weight : current?.bestSetWeight,
+            bestSetDate: beatE1RM ? date : current?.bestSetDate,
+          };
+          return { prs: { ...state.prs, [entry.exerciseId]: next } };
+        });
       },
 
       setNickname: (nickname) => set((state) => ({ user: { ...state.user, nickname } })),
@@ -311,12 +329,18 @@ export const useStore = create<AppStore>()(
         const active: ActiveExercise[] = exercises.map((ex) => {
           const last = getLastEntry(log, ex.id);
           const targetSets = Math.max(1, ex.sets || 1);
-          const sets: ActiveSet[] = Array.from({ length: targetSets }, (_, i) => ({
-            reps: last?.sets[i]?.reps ?? last?.sets[0]?.reps ?? parseFirstRep(ex.reps),
-            weight: last?.sets[i]?.weight ?? last?.sets[0]?.weight ?? ex.targetWeight ?? 0,
-            rpe: last?.sets[i]?.rpe ?? last?.sets[0]?.rpe,
-            done: false,
-          }));
+          const sets: ActiveSet[] = Array.from({ length: targetSets }, (_, i) => {
+            const lastSet = last?.sets[i] ?? last?.sets[0] ?? null;
+            // Double-progression: bump weight when top of rep range was hit,
+            // otherwise add a rep. Falls back to ex.targetWeight on first session.
+            const next = suggestNextLoad(lastSet, ex.reps, 2.5, ex.targetWeight ?? 0);
+            return {
+              reps: next.reps || parseFirstRep(ex.reps),
+              weight: next.weight,
+              rpe: lastSet?.rpe,
+              done: false,
+            };
+          });
           return { exerciseId: ex.id, name: ex.name, targetSets, targetReps: ex.reps, sets };
         });
         set({
@@ -550,6 +574,33 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
   // v5 → v6: body metrics slice.
   if (version < 6) {
     if (!Array.isArray(state.metrics)) state.metrics = [];
+  }
+
+  // v6 → v7: e1RM PR fields (back-compat optional fields). Backfill from
+  // existing log so the user sees historical rep PRs immediately rather than
+  // having to re-train every lift before they show up.
+  if (version < 7) {
+    if (state.prs && Array.isArray(state.log)) {
+      const bestByExercise: Record<string, { e1RM: number; reps: number; weight: number; date: string }> = {};
+      for (const entry of state.log) {
+        const set = bestE1RMSet(entry.sets);
+        if (!set) continue;
+        const score = e1RM(set.weight, set.reps);
+        const prev = bestByExercise[entry.exerciseId];
+        if (!prev || score > prev.e1RM) {
+          bestByExercise[entry.exerciseId] = { e1RM: score, reps: set.reps, weight: set.weight, date: entry.date };
+        }
+      }
+      for (const [exerciseId, best] of Object.entries(bestByExercise)) {
+        const current = state.prs[exerciseId];
+        if (!current) continue; // only enrich exercises that already have a weight PR
+        if ((current.bestE1RM ?? 0) >= best.e1RM) continue;
+        current.bestE1RM = best.e1RM;
+        current.bestSetReps = best.reps;
+        current.bestSetWeight = best.weight;
+        current.bestSetDate = best.date;
+      }
+    }
   }
 
   return state as AppStore;

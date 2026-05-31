@@ -95,10 +95,20 @@ export default function Progress() {
   }, [days]);
 
   // PR list — prefer real exercise name (library, then workouts), fall back to a humanized id.
+  // Each row carries BOTH the max-weight PR and the e1RM rep-PR (when present)
+  // so rep PRs at a sub-max working weight are visible.
   const prList = useMemo(() => {
     return Object.entries(prs)
-      .map(([exerciseId, pr]) => ({ exercise: resolveName(exerciseId), value: pr.value, date: pr.date }))
-      .sort((a, b) => b.value - a.value);
+      .map(([exerciseId, pr]) => ({
+        exercise: resolveName(exerciseId),
+        value: pr.value,
+        date: pr.date,
+        bestE1RM: pr.bestE1RM,
+        bestSetReps: pr.bestSetReps,
+        bestSetWeight: pr.bestSetWeight,
+        bestSetDate: pr.bestSetDate,
+      }))
+      .sort((a, b) => (b.bestE1RM ?? b.value) - (a.bestE1RM ?? a.value));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prs, workoutsMap]);
 
@@ -237,15 +247,37 @@ export default function Progress() {
               <p className="text-xs text-muted-foreground">No PRs yet. Log some workouts!</p>
             ) : (
               <div className="space-y-2">
-                {prList.map((pr, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                    <span className="text-sm text-card-foreground capitalize">{pr.exercise}</span>
-                    <div className="text-right">
-                      <span className="text-sm font-semibold" style={{ color: 'var(--vt-accent)' }}>{pr.value}kg</span>
-                      <span className="text-[10px] text-muted-foreground ml-2">{pr.date}</span>
+                {prList.map((pr, i) => {
+                  const hasRepPR =
+                    pr.bestE1RM != null &&
+                    pr.bestSetReps != null &&
+                    pr.bestSetWeight != null;
+                  return (
+                    <div key={i} className="flex items-start justify-between gap-2 py-1.5 border-b border-border last:border-0">
+                      <span className="text-sm text-card-foreground capitalize min-w-0 flex-1 truncate">{pr.exercise}</span>
+                      <div className="text-right shrink-0">
+                        {hasRepPR ? (
+                          <>
+                            <span className="text-sm font-semibold" style={{ color: 'var(--vt-accent)' }}>
+                              {pr.bestSetWeight}kg × {pr.bestSetReps}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground ml-2">
+                              est {Math.round(pr.bestE1RM!)}
+                            </span>
+                            <p className="text-[10px] text-muted-foreground">
+                              top {pr.value}kg · {pr.bestSetDate ?? pr.date}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm font-semibold" style={{ color: 'var(--vt-accent)' }}>{pr.value}kg</span>
+                            <span className="text-[10px] text-muted-foreground ml-2">{pr.date}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
