@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { X, ChevronDown, ChevronRight, Plus, Flag, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { useStore } from '@/lib/storage';
+import { useStore, computeTrainingPct } from '@/lib/storage';
 import { useElapsed, formatMMSS } from '@/hooks/useCountdown';
 import { getLastEntry, summarizeEntry } from '@/lib/lastPerformance';
 import { triggerFlameConfetti } from '@/lib/confetti';
@@ -55,8 +55,8 @@ export default function ActiveWorkout() {
 
   const handleFinish = () => {
     finishSession();
-    const pct = useStore.getState().getTodayState().completionPct;
-    if (pct >= 100) {
+    const trainingPct = computeTrainingPct(useStore.getState().getTodayState().blocks);
+    if (trainingPct >= 100) {
       triggerFlameConfetti();
       if (navigator.vibrate) navigator.vibrate([50, 100, 50, 100, 50]);
     }

@@ -55,6 +55,21 @@ function computeCompletionPct(blocks: DayState['blocks']): number {
   return total === 0 ? 0 : Math.round((done / total) * 100);
 }
 
+/**
+ * Training-block completion %. Drives companion evolution + streak — the
+ * companion is your TRAINER, not your chore-list, so a perfect workout should
+ * power up the sprite even if you haven't done morning/evening chores.
+ *
+ * A rest day (training.total === 0) returns 100: you completed your planned
+ * training load, so you keep credit. Out-of-range checked counts are clamped.
+ */
+export function computeTrainingPct(blocks: DayState['blocks']): number {
+  const t = blocks.training;
+  if (!t || t.total === 0) return 100;
+  const done = Math.min(t.checked.length, t.total);
+  return Math.round((done / t.total) * 100);
+}
+
 export function computeStreak(days: Record<string, DayState>): number {
   let streak = 0;
   const today = new Date();
@@ -66,7 +81,9 @@ export function computeStreak(days: Record<string, DayState>): number {
     const day = days[key];
 
     if (i === 0 && !day) break; // today hasn't started
-    if (!day || day.completionPct < 75) {
+    if (!day) break;
+    const trainingPct = computeTrainingPct(day.blocks);
+    if (trainingPct < 75) {
       if (i === 0) continue; // today is in progress, check yesterday
       break;
     }

@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getEvolutionStage, getStatusMessage } from '@/lib/evolution';
 import { getCompanion } from '@/lib/companions';
-import { useStore } from '@/lib/storage';
+import { useStore, computeTrainingPct } from '@/lib/storage';
 
 function getSkyGradient(): string {
   const hour = new Date().getHours();
@@ -33,12 +33,12 @@ export default function CompanionCard() {
   const days = useStore(s => s.days);
 
   const todayState = getTodayState();
-  const pct = todayState.completionPct;
+  const trainingPct = computeTrainingPct(todayState.blocks);
   const streak = getStreak();
 
   const companion = getCompanion(starter);
-  const { stage } = getEvolutionStage(pct, streak);
-  const statusMsg = getStatusMessage(pct, streak);
+  const { stage } = getEvolutionStage(trainingPct, streak);
+  const statusMsg = getStatusMessage(trainingPct, streak);
   const spriteUrl = companion.sprites[stage];
 
   const [speech, setSpeech] = useState<string | null>(null);
@@ -110,7 +110,7 @@ export default function CompanionCard() {
             {nickname}
           </h3>
           <span className="text-xs text-muted-foreground">
-            {pct}% today · streak {streak}d
+            training {trainingPct}% · streak {streak}d
           </span>
         </div>
         <p className="mt-0.5 text-xs text-muted-foreground">{statusMsg}</p>
