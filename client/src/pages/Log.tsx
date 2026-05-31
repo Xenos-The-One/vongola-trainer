@@ -1,19 +1,39 @@
 // Log — Quick-log form and recent entries grouped by date
 // Design: "Ember & Parchment" — warm cards, serif headings, clean form
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useStore } from '@/lib/storage';
-import { LIFT_A, LIFT_B, MORNING_BLOCK, EVENING_BLOCK } from '@/lib/seed';
+import { EXERCISE_LIBRARY } from '@/lib/exercises';
 import type { LogEntry } from '@/lib/types';
 
-const ALL_EXERCISES = [...LIFT_A, ...LIFT_B, ...MORNING_BLOCK, ...EVENING_BLOCK];
+interface PickerItem {
+  id: string;
+  name: string;
+}
 
 export default function Log() {
-  const log = useStore(s => s.log);
-  const addLogEntry = useStore(s => s.addLogEntry);
+  const log = useStore((s) => s.log);
+  const workouts = useStore((s) => s.workouts);
+  const addLogEntry = useStore((s) => s.addLogEntry);
+
+  // Picker = full exercise library ∪ the user's workout slices, deduped by id
+  // (user entries win so edited names show), sorted alphabetically.
+  const allExercises = useMemo<PickerItem[]>(() => {
+    const map = new Map<string, PickerItem>();
+    for (const lib of EXERCISE_LIBRARY) map.set(lib.id, { id: lib.id, name: lib.name });
+    [
+      ...workouts.liftA,
+      ...workouts.liftB,
+      ...workouts.morning,
+      ...workouts.evening,
+      ...workouts.custom,
+    ].forEach((e) => map.set(e.id, { id: e.id, name: e.name }));
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [workouts]);
+
   const [showForm, setShowForm] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState(ALL_EXERCISES[0]?.id || '');
+  const [selectedExercise, setSelectedExercise] = useState(allExercises[0]?.id ?? '');
   const [sets, setSets] = useState([{ reps: 10, weight: 0, rpe: 7 }]);
   const [notes, setNotes] = useState('');
 
@@ -86,7 +106,7 @@ export default function Log() {
               onChange={(e) => setSelectedExercise(e.target.value)}
               className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground"
             >
-              {ALL_EXERCISES.map(ex => (
+              {allExercises.map(ex => (
                 <option key={ex.id} value={ex.id}>{ex.name}</option>
               ))}
             </select>
@@ -199,7 +219,7 @@ export default function Log() {
               </h3>
               <div className="space-y-2">
                 {groupedLog[date].map(entry => {
-                  const exercise = ALL_EXERCISES.find(e => e.id === entry.exerciseId);
+                  const exercise = allExercises.find(e => e.id === entry.exerciseId);
                   return (
                     <div key={entry.id} className="rounded-lg border border-border bg-card px-3 py-2.5">
                       <div className="flex items-center justify-between">

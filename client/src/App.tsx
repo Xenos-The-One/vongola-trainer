@@ -1,9 +1,9 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
 import BottomNav from "./components/BottomNav";
 import Today from "./pages/Today";
 import Log from "./pages/Log";
@@ -27,16 +27,22 @@ function Router() {
 }
 
 function AppShell() {
-  const accent = useStore(s => s.user.accent);
-  const fontSize = useStore(s => s.user.fontSize);
-  const theme = useStore(s => s.user.theme);
+  const accent = useStore((s) => s.user.accent);
+  const fontSize = useStore((s) => s.user.fontSize);
+  const theme = useStore((s) => s.user.theme);
+
+  // Drive theme + accent + fontSize on <html> so the whole viewport (including
+  // anything outside the 480px container) follows the user's settings.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", theme === "dark");
+    root.classList.toggle("light", theme === "light");
+    root.dataset.accent = accent;
+    root.dataset.fontsize = fontSize;
+  }, [theme, accent, fontSize]);
 
   return (
-    <div
-      className={`min-h-screen ${theme === 'dark' ? 'dark' : 'light'}`}
-      data-accent={accent}
-      data-fontsize={fontSize}
-    >
+    <div className="min-h-screen">
       <div className="mx-auto max-w-[480px] px-4">
         <Router />
       </div>
@@ -48,12 +54,10 @@ function AppShell() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <Toaster />
-          <AppShell />
-        </TooltipProvider>
-      </ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <AppShell />
+      </TooltipProvider>
     </ErrorBoundary>
   );
 }

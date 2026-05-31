@@ -9,33 +9,34 @@ import PhaseBadge from '@/components/PhaseBadge';
 import ProgressRing from '@/components/ProgressRing';
 import TimerFab from '@/components/TimerFab';
 import { useStore } from '@/lib/storage';
-import { LIFT_A, LIFT_B, MORNING_BLOCK, EVENING_BLOCK, COACH_FOCUS_ITEMS } from '@/lib/seed';
+import { COACH_FOCUS_ITEMS } from '@/lib/seed';
 
 function formatDate(): string {
   const d = new Date();
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
+const WORK_ITEMS = ['Stand & stretch', 'Walk break', 'Posture check', 'Eye rest', 'Hydrate', 'Deep breath'];
+
 export default function Today() {
-  const phase = useStore(s => s.phase);
-  const getTodayState = useStore(s => s.getTodayState);
-  const days = useStore(s => s.days);
+  const phase = useStore((s) => s.phase);
+  const getTodayState = useStore((s) => s.getTodayState);
+  const workouts = useStore((s) => s.workouts);
+  const nextLift = useStore((s) => s.nextLift);
 
   const todayState = getTodayState();
   const pct = todayState.completionPct;
   const dateStr = useMemo(() => formatDate(), []);
 
-  // Determine which lift day (alternate A/B based on day of month)
-  const isLiftB = new Date().getDate() % 2 === 0;
-  const liftExercises = isLiftB ? LIFT_B : LIFT_A;
-  const liftLabel = isLiftB ? 'Lift B' : 'Lift A';
+  const liftExercises = nextLift === 'B' ? workouts.liftB : workouts.liftA;
+  const liftLabel = `Lift ${nextLift}`;
 
   const statusPills = [
-    { label: 'Train', emoji: '🏋', ...todayState.blocks.training },
-    { label: 'Coach', emoji: '🎯', ...todayState.blocks.coach },
-    { label: 'AM', emoji: '🌅', ...todayState.blocks.morning },
-    { label: 'Work', emoji: '💼', ...todayState.blocks.work },
-    { label: 'PM', emoji: '🌙', ...todayState.blocks.evening },
+    { label: 'Train', emoji: '🏋', block: todayState.blocks.training },
+    { label: 'Coach', emoji: '🎯', block: todayState.blocks.coach },
+    { label: 'AM', emoji: '🌅', block: todayState.blocks.morning },
+    { label: 'Work', emoji: '💼', block: todayState.blocks.work },
+    { label: 'PM', emoji: '🌙', block: todayState.blocks.evening },
   ];
 
   return (
@@ -59,16 +60,20 @@ export default function Today() {
       {/* Status pills */}
       <div className="mb-5 -mx-4 px-4">
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {statusPills.map((pill) => (
-            <StatusPill
-              key={pill.label}
-              label={pill.label}
-              emoji={pill.emoji}
-              done={pill.done}
-              total={pill.total}
-              isComplete={pill.done >= pill.total}
-            />
-          ))}
+          {statusPills.map((pill) => {
+            const done = pill.block.checked.length;
+            const total = pill.block.total;
+            return (
+              <StatusPill
+                key={pill.label}
+                label={pill.label}
+                emoji={pill.emoji}
+                done={done}
+                total={total}
+                isComplete={total > 0 && done >= total}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -83,7 +88,7 @@ export default function Today() {
           title="Training"
           subtitle={`~60 min · ${liftLabel}`}
           blockKey="training"
-          items={liftExercises.map(e => e.name)}
+          items={liftExercises.map((e) => e.name)}
           defaultExpanded={true}
         />
         <TaskBlock
@@ -96,19 +101,19 @@ export default function Today() {
           title="Morning Block"
           subtitle="~25 min · Non-negotiable"
           blockKey="morning"
-          items={MORNING_BLOCK.map(e => e.name)}
+          items={workouts.morning.map((e) => e.name)}
         />
         <TaskBlock
           title="Work Block"
           subtitle="09:00–16:30 · every 45m"
           blockKey="work"
-          items={['Stand & stretch', 'Walk break', 'Posture check', 'Eye rest', 'Hydrate', 'Deep breath']}
+          items={WORK_ITEMS}
         />
         <TaskBlock
           title="Evening Block"
           subtitle="~15 min"
           blockKey="evening"
-          items={EVENING_BLOCK.map(e => e.name)}
+          items={workouts.evening.map((e) => e.name)}
         />
       </div>
 

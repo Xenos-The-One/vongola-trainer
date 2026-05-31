@@ -4,10 +4,11 @@ import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+// Register the service worker only in production builds. In dev it shadows Vite's
+// HMR and serves stale assets after refresh; in prod it powers offline + install.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
       // SW registration failed, app still works
     });
   });

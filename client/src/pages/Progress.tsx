@@ -4,13 +4,46 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { useStore } from '@/lib/storage';
+import type { Exercise } from '@/lib/types';
+import { getLibraryExercise } from '@/lib/exercises';
+import { computeMuscleVolume, type MuscleSplit } from '@/lib/volume';
+import { MUSCLE_DISPLAY, normalizeMuscles } from '@/lib/muscles';
+import { humanizeId } from '@/lib/utils';
 import { Trophy, Flame, TrendingUp } from 'lucide-react';
 
 export default function Progress() {
-  const days = useStore(s => s.days);
-  const log = useStore(s => s.log);
-  const prs = useStore(s => s.prs);
-  const getStreak = useStore(s => s.getStreak);
+  const days = useStore((s) => s.days);
+  const log = useStore((s) => s.log);
+  const prs = useStore((s) => s.prs);
+  const workouts = useStore((s) => s.workouts);
+  const getStreak = useStore((s) => s.getStreak);
+
+  // id → exercise lookup across the user's workout slices (fallback for the library).
+  const workoutsMap = useMemo(() => {
+    const map = new Map<string, Exercise>();
+    [
+      ...workouts.liftA,
+      ...workouts.liftB,
+      ...workouts.morning,
+      ...workouts.evening,
+      ...workouts.custom,
+    ].forEach((e) => {
+      if (!map.has(e.id)) map.set(e.id, e);
+    });
+    return map;
+  }, [workouts]);
+
+  // Resolve an exerciseId's name + muscle split: library first, then workouts.
+  const resolveName = (id: string): string =>
+    getLibraryExercise(id)?.name ?? workoutsMap.get(id)?.name ?? humanizeId(id);
+
+  const resolveSplit = (id: string): MuscleSplit | null => {
+    const lib = getLibraryExercise(id);
+    if (lib) return { primary: lib.primaryMuscles, secondary: lib.secondaryMuscles };
+    const ex = workoutsMap.get(id);
+    if (ex) return { primary: normalizeMuscles(ex.muscles), secondary: [] };
+    return null;
+  };
 
   const streak = getStreak();
 
@@ -60,35 +93,27 @@ export default function Progress() {
     return data;
   }, [days]);
 
-  // PR list
+  // PR list — prefer real exercise name (library, then workouts), fall back to a humanized id.
   const prList = useMemo(() => {
-    return Object.entries(prs).map(([exerciseId, pr]) => ({
-      exercise: exerciseId.replace(/-/g, ' '),
-      value: pr.value,
-      date: pr.date,
-    })).sort((a, b) => b.value - a.value);
-  }, [prs]);
+    return Object.entries(prs)
+      .map(([exerciseId, pr]) => ({
+        exercise: resolveName(exerciseId),
+        value: pr.value,
+        date: pr.date,
+      }))
+      .sort((a, b) => b.value - a.value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prs, workoutsMap]);
 
-  // Volume per muscle group (last 4 weeks)
+  // Volume per canonical muscle (last 4 weeks), weighting primary > secondary.
   const volumeData = useMemo(() => {
-    const muscleVolume: Record<string, number> = {};
-    const fourWeeksAgo = new Date();
-    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-
-    log
-      .filter(entry => new Date(entry.date) >= fourWeeksAgo)
-      .forEach(entry => {
-        const totalVolume = entry.sets.reduce((sum, set) => sum + set.reps * set.weight, 0);
-        // Simple mapping: use exerciseId as proxy
-        const muscle = entry.exerciseId.split('-')[0] || 'other';
-        muscleVolume[muscle] = (muscleVolume[muscle] || 0) + totalVolume;
-      });
-
-    return Object.entries(muscleVolume)
-      .map(([muscle, volume]) => ({ muscle, volume }))
+    const { byMuscle } = computeMuscleVolume(log, resolveSplit, { sinceDays: 28 });
+    return (Object.keys(byMuscle) as (keyof typeof byMuscle)[])
+      .map((slug) => ({ muscle: MUSCLE_DISPLAY[slug], volume: Math.round(byMuscle[slug] ?? 0) }))
       .sort((a, b) => b.volume - a.volume)
       .slice(0, 6);
-  }, [log]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [log, workoutsMap]);
 
   function getHeatColor(pct: number): string {
     if (pct >= 100) return 'var(--vt-accent)';
@@ -175,7 +200,7 @@ export default function Progress() {
       {/* Volume Chart */}
       {volumeData.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-4 mb-4">
-          <h3 className="text-sm font-semibold text-card-foreground mb-3">Volume by Exercise (4 weeks)</h3>
+          <h3 className="text-sm font-semibold text-card-foreground mb-3">Volume by Muscle (4 weeks)</h3>
           <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={volumeData} barSize={24} layout="vertical">

@@ -9,6 +9,8 @@ export type FontSize = 'S' | 'M' | 'L';
 
 export type StarterKey = 'natsu' | 'uri' | 'kojirou' | 'jirou' | 'kangaryuu' | 'gyudon' | 'roll' | 'mukurou';
 
+export type LiftKey = 'A' | 'B';
+
 export interface Exercise {
   id: string;
   name: string;
@@ -30,7 +32,7 @@ export interface LogEntry {
 }
 
 export interface BlockState {
-  done: number;
+  checked: number[];
   total: number;
 }
 
@@ -78,6 +80,7 @@ export interface Store {
   };
   log: LogEntry[];
   prs: Record<string, PersonalRecord>;
+  nextLift: LiftKey;
 }
 
 // Companion system types

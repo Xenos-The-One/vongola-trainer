@@ -1,10 +1,23 @@
 // Settings — Theme, Accent Color, Font Size, Starter, Nickname
 // Design: "Ember & Parchment" — warm cards, clean form controls
 
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { useStore } from '@/lib/storage';
 import { COMPANIONS } from '@/lib/companions';
 import type { AccentKey, FontSize, ThemeMode } from '@/lib/types';
-import { Check } from 'lucide-react';
+import { exportBackup, parseBackup, applyBackup, resetAllData, getStorageSize } from '@/lib/backup';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Check, Download, Upload, Trash2 } from 'lucide-react';
 
 const ACCENTS: { key: AccentKey; label: string; color: string }[] = [
   { key: 'amber', label: 'Amber', color: '#E0A82E' },
@@ -50,6 +63,27 @@ export default function Settings() {
   const setTheme = useStore(s => s.setTheme);
   const setFontSize = useStore(s => s.setFontSize);
   const setStarter = useStore(s => s.setStarter);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImport, setPendingImport] = useState<unknown | null>(null);
+  const [showReset, setShowReset] = useState(false);
+
+  const handleExport = () => {
+    exportBackup();
+    toast.success('Backup downloaded');
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+    const result = parseBackup(await file.text());
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    setPendingImport(result.data);
+  };
 
   return (
     <div className="pb-24 pt-4">
@@ -187,11 +221,91 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* Data backup */}
+      <div className="rounded-xl border border-border bg-card p-4 mb-4">
+        <label className="text-sm font-semibold text-card-foreground block mb-1">Data</label>
+        <p className="text-[11px] text-muted-foreground mb-3">
+          Stored on this device only · {getStorageSize()}. Export a backup to keep it safe.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={handleExport}
+            className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-card-foreground transition-colors hover:border-[var(--vt-accent)]/40"
+          >
+            <Download size={15} /> Export
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-card-foreground transition-colors hover:border-[var(--vt-accent)]/40"
+          >
+            <Upload size={15} /> Import
+          </button>
+        </div>
+        <button
+          onClick={() => setShowReset(true)}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-destructive/40 px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+        >
+          <Trash2 size={15} /> Reset all data
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </div>
+
       {/* Version info */}
       <div className="text-center py-4">
-        <p className="text-xs text-muted-foreground">Vongola Trainer v1.1</p>
+        <p className="text-xs text-muted-foreground">Vongola Trainer v1.2</p>
         <p className="text-[10px] text-muted-foreground/60 mt-0.5">Data stored locally on this device</p>
       </div>
+
+      {/* Import confirmation */}
+      <AlertDialog
+        open={pendingImport !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingImport(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Import this backup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This replaces all data currently on this device with the backup's contents, then reloads.
+              It can't be undone — export your current data first if you're unsure.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingImport !== null) applyBackup(pendingImport);
+              }}
+            >
+              Replace &amp; reload
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset confirmation */}
+      <AlertDialog open={showReset} onOpenChange={setShowReset}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset all data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently erases your workouts, logs, streak, and settings on this device.
+              Consider exporting a backup first.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={resetAllData}>Erase everything</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
