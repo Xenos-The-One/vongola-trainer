@@ -50,8 +50,10 @@ export function exportBackup(): void {
 export type ParseResult = { ok: true; data: unknown } | { ok: false; error: string };
 
 /**
- * Validate + (if needed) migrate a backup file's text. Returns store state ready
- * to write, or a human-readable error. Never mutates anything.
+ * Validate + migrate a backup file's text into a complete, valid store.
+ * Never mutates anything. A partial or slightly-malformed backup is coerced to
+ * a valid store (missing pieces defaulted) so import can never crash the app on
+ * load or overwrite good data with junk.
  */
 export function parseBackup(text: string): ParseResult {
   let parsed: unknown;
@@ -88,9 +90,7 @@ export function parseBackup(text: string): ParseResult {
   }
 
   // Always run the migration pipeline, then deep-merge over fresh defaults and
-  // coerce every slice to a safe shape. A partial or slightly-malformed backup
-  // therefore yields a VALID store (missing pieces defaulted) and can never
-  // crash the app on load or silently overwrite good data with junk.
+  // coerce every slice to a safe shape so the result satisfies the Store shape.
   const migrated = migrateStore({ ...(file.data as object) }, file.schemaVersion) as Record<string, unknown>;
   return { ok: true, data: mergeOverDefaults(migrated) };
 }
