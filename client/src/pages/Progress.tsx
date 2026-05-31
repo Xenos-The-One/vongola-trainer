@@ -10,9 +10,14 @@ import { getLibraryExercise } from '@/lib/exercises';
 import { computeMuscleVolume, type MuscleSplit } from '@/lib/volume';
 import { MUSCLE_DISPLAY, normalizeMuscles, type MuscleSlug } from '@/lib/muscles';
 import { humanizeId } from '@/lib/utils';
+import { getHeatColor } from '@/lib/heat';
 import SegmentedTabs from '@/components/SegmentedTabs';
 import MuscleMap from '@/components/MuscleMap';
+import MetricsPanel from '@/components/MetricsPanel';
+import CalendarMonth from '@/components/CalendarMonth';
 import { Trophy, Flame, TrendingUp } from 'lucide-react';
+
+type ProgressTab = 'overview' | 'body' | 'metrics' | 'history';
 
 export default function Progress() {
   const days = useStore((s) => s.days);
@@ -21,7 +26,7 @@ export default function Progress() {
   const workouts = useStore((s) => s.workouts);
   const getStreak = useStore((s) => s.getStreak);
 
-  const [tab, setTab] = useState<'overview' | 'body'>('overview');
+  const [tab, setTab] = useState<ProgressTab>('overview');
   const [windowDays, setWindowDays] = useState<7 | 28>(28);
   const [bodyView, setBodyView] = useState<'both' | 'front' | 'back'>('both');
   const [selected, setSelected] = useState<MuscleSlug | null>(null);
@@ -132,14 +137,6 @@ export default function Progress() {
     [bodyVolume]
   );
 
-  function getHeatColor(pct: number): string {
-    if (pct >= 100) return 'var(--vt-accent)';
-    if (pct >= 75) return 'var(--vt-accent-dim)';
-    if (pct >= 50) return 'var(--vt-accent-glow)';
-    if (pct > 0) return 'rgba(255,255,255,0.08)';
-    return 'rgba(255,255,255,0.03)';
-  }
-
   return (
     <div className="pb-24 pt-4">
       <h1 className="text-2xl font-bold text-foreground mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>
@@ -149,14 +146,16 @@ export default function Progress() {
       <SegmentedTabs
         tabs={[
           { key: 'overview', label: 'Overview' },
-          { key: 'body', label: 'Body Map' },
+          { key: 'body', label: 'Body' },
+          { key: 'metrics', label: 'Metrics' },
+          { key: 'history', label: 'History' },
         ]}
         value={tab}
         onChange={setTab}
         className="mb-5"
       />
 
-      {tab === 'overview' ? (
+      {tab === 'overview' && (
         <>
           {/* Streak & Stats */}
           <div className="grid grid-cols-3 gap-3 mb-5">
@@ -250,7 +249,13 @@ export default function Progress() {
             )}
           </div>
         </>
-      ) : (
+      )}
+
+      {tab === 'metrics' && <MetricsPanel />}
+
+      {tab === 'history' && <CalendarMonth />}
+
+      {tab === 'body' && (
         <>
           {/* Body Map controls */}
           <div className="mb-3 flex gap-2">

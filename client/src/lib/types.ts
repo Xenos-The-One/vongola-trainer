@@ -67,6 +67,14 @@ export interface PersonalRecord {
   date: string;
 }
 
+/** A dated body-measurement entry (one logical entry per date; upsert by date). */
+export interface BodyMetric {
+  date: string; // YYYY-MM-DD
+  weightKg?: number;
+  bodyFat?: number;
+  measurements?: Record<string, number>; // cm: waist, chest, arms, thighs, ...
+}
+
 /** A named, materialized workout (from the generator, a routine, or built by hand). */
 export interface SavedWorkout {
   id: string;
@@ -126,6 +134,8 @@ export interface Store {
   savedWorkouts: SavedWorkout[];
   /** In-progress live workout. Persisted so a mid-workout refresh/close survives. */
   activeSession: ActiveSession | null;
+  /** Body-weight / measurement history. */
+  metrics: BodyMetric[];
 }
 
 // Companion system types

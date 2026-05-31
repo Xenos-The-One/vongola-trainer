@@ -17,13 +17,14 @@ import type {
   ActiveSet,
   ActiveExercise,
   ActiveSession,
+  BodyMetric,
 } from './types';
 import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
 import { getLastEntry, parseFirstRep } from './lastPerformance';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 function getTodayKey(): string {
   return new Date().toISOString().split('T')[0];
@@ -123,6 +124,10 @@ export interface StoreActions {
   completeTrainingBlock: () => void;
   finishSession: () => void;
   cancelSession: () => void;
+
+  // Body metrics
+  upsertMetric: (metric: BodyMetric) => void;
+  deleteMetric: (date: string) => void;
 
   // Streak
   getStreak: () => number;
@@ -432,6 +437,15 @@ export const useStore = create<AppStore>()(
 
       cancelSession: () => set({ activeSession: null }),
 
+      upsertMetric: (metric) =>
+        set((state) => {
+          const others = state.metrics.filter((m) => m.date !== metric.date);
+          return { metrics: [...others, metric].sort((a, b) => a.date.localeCompare(b.date)) };
+        }),
+
+      deleteMetric: (date) =>
+        set((state) => ({ metrics: state.metrics.filter((m) => m.date !== date) })),
+
       getStreak: () => {
         return computeStreak(get().days);
       },
@@ -513,6 +527,11 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
   // v4 → v5: active workout session slice (nullable add).
   if (version < 5) {
     if (state.activeSession === undefined) state.activeSession = null;
+  }
+
+  // v5 → v6: body metrics slice.
+  if (version < 6) {
+    if (!Array.isArray(state.metrics)) state.metrics = [];
   }
 
   return state as AppStore;

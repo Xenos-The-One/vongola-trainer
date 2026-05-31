@@ -110,5 +110,6 @@ export function createDefaultStore(): Store {
     equipmentProfile: ['dumbbell', 'band', 'pull-up bar', 'bodyweight'],
     savedWorkouts: [],
     activeSession: null,
+    metrics: [],
   };
 }
