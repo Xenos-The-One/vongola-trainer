@@ -1,6 +1,7 @@
 // Vongola Trainer — "last time" lookup for an exercise.
 
 import type { LogEntry } from './types';
+import { formatWeight, type WeightUnit } from './units';
 
 /** Most recent log entry for an exercise (by date, then id), or null. */
 export function getLastEntry(log: LogEntry[], exerciseId: string): LogEntry | null {
@@ -12,8 +13,8 @@ export function getLastEntry(log: LogEntry[], exerciseId: string): LogEntry | nu
   return best;
 }
 
-/** Compact "3×10 @ 20kg" summary of an entry's sets, or null. */
-export function summarizeEntry(entry: LogEntry | null): string | null {
+/** Compact "3×10 @ 20kg" summary of an entry's sets in the user's chosen unit. */
+export function summarizeEntry(entry: LogEntry | null, unit: WeightUnit = 'kg'): string | null {
   if (!entry || entry.sets.length === 0) return null;
   const reps = entry.sets.map((s) => s.reps);
   const weights = entry.sets.map((s) => s.weight);
@@ -22,7 +23,9 @@ export function summarizeEntry(entry: LogEntry | null): string | null {
   const repsPart = sameReps ? `${entry.sets.length}×${reps[0]}` : reps.join('/');
   const maxWeight = Math.max(...weights);
   if (maxWeight <= 0) return repsPart;
-  const weightPart = sameWeight ? `${weights[0]}kg` : `${maxWeight}kg`;
+  const weightPart = sameWeight
+    ? `${formatWeight(weights[0], unit)}${unit}`
+    : `${formatWeight(maxWeight, unit)}${unit}`;
   return `${repsPart} @ ${weightPart}`;
 }
 

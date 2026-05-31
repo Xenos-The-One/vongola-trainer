@@ -1,7 +1,15 @@
 // SetRow — one editable set inside Active Workout: reps / weight / RPE + done.
+//
+// NumberField keeps a LOCAL string state so the user can clear the input,
+// type "1.", type a decimal mid-input, etc. — without the parent value
+// snapping the display back to "0" on every keystroke (the original bug).
+// The parent receives the parsed numeric value only when it parses cleanly.
 
+import { useEffect, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import type { ActiveSet } from '@/lib/types';
+import { useStore } from '@/lib/storage';
+import { toUnit, fromUnit } from '@/lib/units';
 
 interface SetRowProps {
   index: number;
@@ -25,15 +33,39 @@ function NumberField({
   step?: number;
   min?: number;
 }) {
+  // Local string mirrors the controlled value but lets the user type
+  // intermediate states ("", "1.", "0.5") without snap-back to "0".
+  const [text, setText] = useState(value === 0 ? '' : String(value));
+
+  // Re-sync when the parent value changes externally (set added, prefill swap,
+  // overload bump). Skip when our local empty already maps to value === 0, or
+  // when the user is mid-typing a value that parses to the same number.
+  useEffect(() => {
+    const parsed = text === '' ? 0 : Number(text);
+    if (parsed === value) return;
+    setText(value === 0 ? '' : String(value));
+  }, [value]);
+
   return (
     <div className="flex-1">
       <input
         type="number"
         inputMode="decimal"
-        value={Number.isFinite(value) ? value : 0}
+        value={text}
+        placeholder={String(min)}
         step={step}
         min={min}
-        onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+        onChange={(e) => {
+          const t = e.target.value;
+          setText(t);
+          if (t === '' || t === '-' || t.endsWith('.')) {
+            // Partial / empty — don't push junk to parent. Re-emit 0 when truly empty.
+            if (t === '') onChange(0);
+            return;
+          }
+          const n = Number(t);
+          if (Number.isFinite(n)) onChange(n);
+        }}
         className="w-full rounded-md border border-border bg-secondary px-2 py-2 text-center text-sm text-foreground"
       />
       <span className="mt-0.5 block text-center text-[9px] text-muted-foreground">{label}</span>
@@ -42,6 +74,13 @@ function NumberField({
 }
 
 export default function SetRow({ index, set, canRemove, onChange, onToggleDone, onRemove }: SetRowProps) {
+  const units = useStore((s) => s.user.units ?? 'kg');
+  // The weight field shows + accepts values in the user's chosen unit, but the
+  // store keeps kg. Convert at the edge so log math (e1RM, PRs, volume) stays
+  // unit-agnostic.
+  const displayWeight = toUnit(set.weight, units);
+  const weightStep = units === 'kg' ? 0.5 : 1;
+
   return (
     <div
       className={`flex items-center gap-2 rounded-lg border p-2 transition-colors ${
@@ -51,7 +90,12 @@ export default function SetRow({ index, set, canRemove, onChange, onToggleDone, 
       <span className="w-5 shrink-0 text-center text-xs font-semibold text-muted-foreground">{index + 1}</span>
       <div className="flex flex-1 gap-2">
         <NumberField value={set.reps} onChange={(reps) => onChange({ reps })} label="reps" />
-        <NumberField value={set.weight} onChange={(weight) => onChange({ weight })} label="kg" step={0.5} />
+        <NumberField
+          value={Number(displayWeight.toFixed(2))}
+          onChange={(w) => onChange({ weight: fromUnit(w, units) })}
+          label={units}
+          step={weightStep}
+        />
         <NumberField value={set.rpe ?? 0} onChange={(rpe) => onChange({ rpe })} label="RPE" min={0} />
       </div>
       <button

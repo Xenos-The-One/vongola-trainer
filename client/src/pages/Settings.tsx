@@ -64,8 +64,10 @@ export default function Settings() {
   const setTheme = useStore(s => s.setTheme);
   const setFontSize = useStore(s => s.setFontSize);
   const setStarter = useStore(s => s.setStarter);
+  const setUnits = useStore(s => s.setUnits);
   const equipmentProfile = useStore((s) => s.equipmentProfile);
   const setEquipmentProfile = useStore((s) => s.setEquipmentProfile);
+  const units = user.units ?? 'kg';
 
   const toggleEquipment = (key: Equipment) => {
     setEquipmentProfile(
@@ -133,6 +135,29 @@ export default function Settings() {
               }`}
             >
               {theme}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Units */}
+      <div className="rounded-xl border border-border bg-card p-4 mb-4">
+        <label className="text-sm font-semibold text-card-foreground block mb-1">Weight units</label>
+        <p className="text-[11px] text-muted-foreground mb-3">
+          Display only — internal log values are unchanged when you toggle.
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {(['kg', 'lb'] as const).map((u) => (
+            <button
+              key={u}
+              onClick={() => setUnits(u)}
+              className={`rounded-lg border px-4 py-2.5 text-sm font-medium uppercase transition-colors ${
+                units === u
+                  ? 'border-[var(--vt-accent)] bg-[var(--vt-accent)]/10 text-foreground'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {u}
             </button>
           ))}
         </div>

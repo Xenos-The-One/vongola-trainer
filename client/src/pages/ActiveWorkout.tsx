@@ -28,6 +28,7 @@ const REST_PRESETS = [60, 90, 120, 180];
 export default function ActiveWorkout() {
   const [, setLocation] = useLocation();
   const session = useStore((s) => s.activeSession);
+  const units = useStore((s) => s.user.units ?? 'kg');
   const log = useStore((s) => s.log);
   const updateActiveSet = useStore((s) => s.updateActiveSet);
   const toggleSetDone = useStore((s) => s.toggleSetDone);
@@ -52,6 +53,12 @@ export default function ActiveWorkout() {
 
   const totalSets = session.exercises.reduce((n, ex) => n + ex.sets.length, 0);
   const doneSets = session.exercises.reduce((n, ex) => n + ex.sets.filter((s) => s.done).length, 0);
+  // The actual finish-log criterion: any set with reps > 0. The "done" tick
+  // is for rest-timer feedback only, not for gating the log.
+  const loggableSets = session.exercises.reduce(
+    (n, ex) => n + ex.sets.filter((s) => s.reps > 0).length,
+    0,
+  );
 
   const handleFinish = () => {
     finishSession();
@@ -117,7 +124,7 @@ export default function ActiveWorkout() {
           {session.exercises.map((ex, exIdx) => {
             const open = session.currentIndex === exIdx;
             const exDone = ex.sets.length > 0 && ex.sets.every((s) => s.done);
-            const last = summarizeEntry(getLastEntry(log, ex.exerciseId));
+            const last = summarizeEntry(getLastEntry(log, ex.exerciseId), units);
             return (
               <div key={`${ex.exerciseId}-${exIdx}`} className="overflow-hidden rounded-xl border border-border bg-card">
                 <button
@@ -216,9 +223,11 @@ export default function ActiveWorkout() {
           <AlertDialogHeader>
             <AlertDialogTitle>Finish workout?</AlertDialogTitle>
             <AlertDialogDescription>
-              {doneSets > 0
-                ? `Logs ${doneSets} completed set${doneSets === 1 ? '' : 's'}. Unchecked sets are dropped.`
-                : 'No sets are checked off yet — nothing will be logged.'}
+              {loggableSets > 0
+                ? `Logs ${loggableSets} set${loggableSets === 1 ? '' : 's'}${
+                    loggableSets > doneSets ? ` (${loggableSets - doneSets} unchecked but filled)` : ''
+                  }. To skip a set, clear its reps or tap the ✕.`
+                : 'No sets have reps filled in — nothing will be logged.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

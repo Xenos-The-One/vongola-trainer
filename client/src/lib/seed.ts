@@ -91,6 +91,7 @@ export function createDefaultStore(): Store {
       accent: 'sunset',
       theme: 'dark',
       fontSize: 'M',
+      units: 'kg',
     },
     phase: {
       name: 'Phase 1 — Downregulate',

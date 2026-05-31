@@ -25,6 +25,7 @@ import { getLastEntry, parseFirstRep } from './lastPerformance';
 import { todayKey, dateKey } from './date';
 import { e1RM, bestE1RMSet } from './strength';
 import { suggestNextLoad } from './overload';
+import { defaultWeightStep } from './units';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
 export const SCHEMA_VERSION = 7;
@@ -109,6 +110,7 @@ export interface StoreActions {
   setTheme: (theme: ThemeMode) => void;
   setFontSize: (fontSize: FontSize) => void;
   setStarter: (starter: string) => void;
+  setUnits: (units: 'kg' | 'lb') => void;
 
   // Workouts
   updateExercise: (category: keyof Store['workouts'], index: number, exercise: Exercise) => void;
@@ -275,6 +277,8 @@ export const useStore = create<AppStore>()(
       setStarter: (starter) =>
         set((state) => ({ user: { ...state.user, starter: starter as Store['user']['starter'] } })),
 
+      setUnits: (units) => set((state) => ({ user: { ...state.user, units } })),
+
       updateExercise: (category, index, exercise) => {
         set((state) => {
           const list = [...state.workouts[category]];
@@ -326,6 +330,10 @@ export const useStore = create<AppStore>()(
 
       startSession: ({ source, liftKey, exercises }) => {
         const log = get().log;
+        // The overload step is in the user's chosen unit (lb users want +5 lb
+        // jumps, not +2.5 kg). Conversion happens at the display layer.
+        const units = get().user.units ?? 'kg';
+        const stepKg = units === 'kg' ? defaultWeightStep('kg') : 5 / 2.2046226218; // 5 lb → kg
         const active: ActiveExercise[] = exercises.map((ex) => {
           const last = getLastEntry(log, ex.id);
           const targetSets = Math.max(1, ex.sets || 1);
@@ -333,7 +341,7 @@ export const useStore = create<AppStore>()(
             const lastSet = last?.sets[i] ?? last?.sets[0] ?? null;
             // Double-progression: bump weight when top of rep range was hit,
             // otherwise add a rep. Falls back to ex.targetWeight on first session.
-            const next = suggestNextLoad(lastSet, ex.reps, 2.5, ex.targetWeight ?? 0);
+            const next = suggestNextLoad(lastSet, ex.reps, stepKg, ex.targetWeight ?? 0);
             return {
               reps: next.reps || parseFirstRep(ex.reps),
               weight: next.weight,
@@ -464,12 +472,17 @@ export const useStore = create<AppStore>()(
         if (!session) return;
         const date = getTodayKey();
         for (const ex of session.exercises) {
-          const doneSets = ex.sets.filter((st) => st.done);
-          if (doneSets.length === 0) continue;
+          // Log any set the user actually has reps in. Previously we dropped
+          // anything not "done"-ticked, but the tick is really for the rest
+          // timer — users routinely fill in all sets then forget to tap the
+          // last few checkmarks. Anything with reps > 0 is treated as logged;
+          // to discard a prefilled set the user clears reps or hits the X.
+          const loggable = ex.sets.filter((st) => st.reps > 0);
+          if (loggable.length === 0) continue;
           get().addLogEntry({
             date,
             exerciseId: ex.exerciseId,
-            sets: doneSets.map((st) => ({ reps: st.reps, weight: st.weight, rpe: st.rpe })),
+            sets: loggable.map((st) => ({ reps: st.reps, weight: st.weight, rpe: st.rpe })),
             notes: ex.notes || undefined,
           });
         }

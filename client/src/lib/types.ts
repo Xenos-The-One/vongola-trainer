@@ -54,6 +54,8 @@ export interface UserSettings {
   accent: AccentKey;
   theme: ThemeMode;
   fontSize: FontSize;
+  /** Weight display unit. Internal storage is always kg; this only affects UI + input. */
+  units?: 'kg' | 'lb';
 }
 
 export interface PhaseInfo {

@@ -12,6 +12,7 @@ import { MUSCLE_DISPLAY, normalizeMuscles, type MuscleSlug } from '@/lib/muscles
 import { humanizeId } from '@/lib/utils';
 import { dateKey } from '@/lib/date';
 import { getHeatColor } from '@/lib/heat';
+import { formatWeight } from '@/lib/units';
 import SegmentedTabs from '@/components/SegmentedTabs';
 import MuscleMap from '@/components/MuscleMap';
 import MetricsPanel from '@/components/MetricsPanel';
@@ -26,6 +27,7 @@ export default function Progress() {
   const prs = useStore((s) => s.prs);
   const workouts = useStore((s) => s.workouts);
   const getStreak = useStore((s) => s.getStreak);
+  const units = useStore((s) => s.user.units ?? 'kg');
 
   const [tab, setTab] = useState<ProgressTab>('overview');
   const [windowDays, setWindowDays] = useState<7 | 28>(28);
@@ -259,18 +261,18 @@ export default function Progress() {
                         {hasRepPR ? (
                           <>
                             <span className="text-sm font-semibold" style={{ color: 'var(--vt-accent)' }}>
-                              {pr.bestSetWeight}kg × {pr.bestSetReps}
+                              {formatWeight(pr.bestSetWeight!, units)}{units} × {pr.bestSetReps}
                             </span>
                             <span className="text-[10px] text-muted-foreground ml-2">
-                              est {Math.round(pr.bestE1RM!)}
+                              est {formatWeight(pr.bestE1RM!, units)}
                             </span>
                             <p className="text-[10px] text-muted-foreground">
-                              top {pr.value}kg · {pr.bestSetDate ?? pr.date}
+                              top {formatWeight(pr.value, units)}{units} · {pr.bestSetDate ?? pr.date}
                             </p>
                           </>
                         ) : (
                           <>
-                            <span className="text-sm font-semibold" style={{ color: 'var(--vt-accent)' }}>{pr.value}kg</span>
+                            <span className="text-sm font-semibold" style={{ color: 'var(--vt-accent)' }}>{formatWeight(pr.value, units)}{units}</span>
                             <span className="text-[10px] text-muted-foreground ml-2">{pr.date}</span>
                           </>
                         )}
