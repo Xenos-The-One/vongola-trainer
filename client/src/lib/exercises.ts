@@ -140,28 +140,28 @@ export const EXERCISE_LIBRARY: LibraryExercise[] = [
     ['Set pulleys high, stagger your stance, and grab a handle in each hand.',
      'With a slight forward lean and soft elbows, sweep your hands down and together.',
      'Squeeze the chest hard at the bottom, then return slowly under control.']),
-  ex('overhead-press', 'Overhead Press', 'push', 'compound', ['dumbbell'], ['front-deltoids'], ['triceps', 'trapezius'],
+  ex('overhead-press', 'Overhead Press', 'push', 'compound', ['dumbbell'], ['front-deltoids'], ['side-deltoids', 'triceps', 'trapezius'],
     'Brace, press overhead, biceps by ears.',
     ['Hold dumbbells at shoulder height, palms forward, brace your core and squeeze your glutes.',
      'Press straight overhead until arms lock, biceps finishing by your ears.',
      'Lower under control to your shoulders without flaring the ribs.']),
-  ex('barbell-ohp', 'Barbell Overhead Press', 'push', 'compound', ['barbell'], ['front-deltoids'], ['triceps', 'trapezius'],
+  ex('barbell-ohp', 'Barbell Overhead Press', 'push', 'compound', ['barbell'], ['front-deltoids'], ['side-deltoids', 'triceps', 'trapezius'],
     'Glutes tight, bar travels over mid-foot.',
     ['Rack the bar on your front delts, grip just outside shoulders, brace hard.',
      'Press the bar up, moving your head back slightly so the bar clears your chin.',
      'Lock out with the bar over your mid-foot, then lower under control.'],
     { difficulty: 'intermediate' }),
-  ex('arnold-press', 'Arnold Press', 'push', 'compound', ['dumbbell'], ['front-deltoids'], ['triceps', 'trapezius'],
+  ex('arnold-press', 'Arnold Press', 'push', 'compound', ['dumbbell'], ['front-deltoids'], ['side-deltoids', 'triceps', 'trapezius'],
     'Rotate palms out as you press.',
     ['Start with dumbbells in front of your shoulders, palms facing you.',
      'As you press up, rotate your palms to face forward.',
      'Reverse the rotation on the way down to keep constant tension on the delts.']),
-  ex('lateral-raise', 'Dumbbell Lateral Raise', 'push', 'isolation', ['dumbbell'], ['front-deltoids'], ['trapezius'],
+  ex('lateral-raise', 'Dumbbell Lateral Raise', 'push', 'isolation', ['dumbbell'], ['side-deltoids'], ['trapezius'],
     'Lead with elbows, raise to shoulder height.',
     ['Stand with light dumbbells at your sides, slight bend in the elbows.',
      'Raise your arms out to the sides leading with your elbows, up to shoulder height.',
      'Lower slowly. Imagine pouring water from the dumbbells to bias the side delts.']),
-  ex('band-lateral-raise', 'Band Lateral Raise', 'push', 'isolation', ['band'], ['front-deltoids'], [],
+  ex('band-lateral-raise', 'Band Lateral Raise', 'push', 'isolation', ['band'], ['side-deltoids'], [],
     'Stand on band, raise arms to the sides.',
     ['Stand on the middle of a band, a handle in each hand.',
      'Raise your arms out to the sides to shoulder height against the band tension.',
@@ -554,14 +554,21 @@ export function getLibraryExercise(id: string): LibraryExercise | undefined {
 }
 
 /**
- * A guaranteed-working "how to" video link: a curated watch URL when videoId is
- * set, otherwise a YouTube search for the exercise's proper form (always lands
- * on real tutorials, never a dead link).
+ * A "how to" video link. Returns the curated watch URL when videoId is set,
+ * otherwise a YouTube search results page for the exercise's proper form.
+ * Callers should branch UI on `hasCuratedVideo()` so the label is honest —
+ * a button reading "Watch form video" that opens a search results page is
+ * the kind of UX lie that erodes trust quickly.
  */
 export function formVideoUrl(e: Pick<LibraryExercise, 'name' | 'videoId'>): string {
   if (e.videoId) return `https://www.youtube.com/watch?v=${e.videoId}`;
   const q = encodeURIComponent(`how to ${e.name} proper form technique`);
   return `https://www.youtube.com/results?search_query=${q}`;
+}
+
+/** True only when a curated videoId is set — distinguishes "watch" from "search". */
+export function hasCuratedVideo(e: Pick<LibraryExercise, 'videoId'>): boolean {
+  return !!e.videoId;
 }
 
 /** YouTube thumbnail for a curated videoId. */

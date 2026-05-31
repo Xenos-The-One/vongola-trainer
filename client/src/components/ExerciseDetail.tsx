@@ -1,11 +1,11 @@
 // ExerciseDetail — modal showing a library exercise's muscles, how-to steps,
 // a mini muscle map, and a YouTube form-video link.
 
-import { Play } from 'lucide-react';
+import { Play, Search } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import MuscleMap from './MuscleMap';
 import { MUSCLE_DISPLAY, type MuscleSlug } from '@/lib/muscles';
-import { formVideoUrl, type LibraryExercise } from '@/lib/exercises';
+import { formVideoUrl, hasCuratedVideo, type LibraryExercise } from '@/lib/exercises';
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -99,7 +99,11 @@ export default function ExerciseDetail({
               className="flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: 'var(--vt-accent)' }}
             >
-              <Play size={15} /> Watch form video
+              {hasCuratedVideo(exercise) ? (
+                <><Play size={15} /> Watch form video</>
+              ) : (
+                <><Search size={15} /> Find form video on YouTube</>
+              )}
             </a>
           </>
         )}

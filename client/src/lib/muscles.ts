@@ -5,6 +5,7 @@
 export const MUSCLE_SLUGS = [
   'chest',
   'front-deltoids',
+  'side-deltoids',
   'back-deltoids',
   'trapezius',
   'upper-back',
@@ -40,6 +41,7 @@ export function isMuscleSlug(value: string): value is MuscleSlug {
 export const MUSCLE_DISPLAY: Record<MuscleSlug, string> = {
   chest: 'Chest',
   'front-deltoids': 'Front Delts',
+  'side-deltoids': 'Side Delts',
   'back-deltoids': 'Rear Delts',
   trapezius: 'Traps',
   'upper-back': 'Upper Back',
@@ -63,7 +65,7 @@ export const MUSCLE_DISPLAY: Record<MuscleSlug, string> = {
 export const MUSCLE_GROUPS: Record<string, MuscleSlug[]> = {
   Chest: ['chest'],
   Back: ['lats', 'upper-back', 'lower-back', 'trapezius'],
-  Shoulders: ['front-deltoids', 'back-deltoids'],
+  Shoulders: ['front-deltoids', 'side-deltoids', 'back-deltoids'],
   Arms: ['biceps', 'triceps', 'forearm'],
   Core: ['abs', 'obliques'],
   Legs: ['quadriceps', 'hamstring', 'gluteal', 'adductor', 'abductors', 'calves'],
@@ -84,6 +86,12 @@ export const MUSCLE_NORMALIZE: Record<string, MuscleTag> = {
   thoracic: 'upper-back',
   'rear delts': 'back-deltoids',
   'rear delt': 'back-deltoids',
+  'side delts': 'side-deltoids',
+  'side delt': 'side-deltoids',
+  'lateral delts': 'side-deltoids',
+  'lateral delt': 'side-deltoids',
+  'medial delts': 'side-deltoids',
+  'medial delt': 'side-deltoids',
   shoulders: 'front-deltoids',
   shoulder: 'front-deltoids',
   delts: 'front-deltoids',
