@@ -35,9 +35,10 @@ describe('migrateStore', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const out = migrateStore(structuredClone(v1), 1) as any;
 
-    // v1 -> v2: BlockState {done,total} becomes {checked,total}
-    expect(out.days['2026-01-01'].blocks.training.checked).toEqual([0, 1, 2]);
-    expect(out.days['2026-01-01'].blocks.training.done).toBeUndefined();
+    // v1 -> v2: BlockState {done,total} becomes {checked,total} (flattened in v8)
+    expect(out.days['2026-01-01'].training.checked).toEqual([0, 1, 2]);
+    expect(out.days['2026-01-01'].training.total).toBe(5);
+    expect(out.days['2026-01-01'].blocks).toBeUndefined(); // v7→v8 flattened
     expect(out.nextLift).toBe('A');
 
     // v2 -> v3: free-text muscles normalized to canonical slugs
@@ -48,6 +49,10 @@ describe('migrateStore', () => {
     expect(Array.isArray(out.savedWorkouts)).toBe(true);
     expect(out.activeSession).toBeNull();
     expect(Array.isArray(out.metrics)).toBe(true);
+
+    // v7 -> v8: chore-block workout lists dropped
+    expect(out.workouts.morning).toBeUndefined();
+    expect(out.workouts.evening).toBeUndefined();
   });
 
   it('is idempotent when re-run at the current version', () => {
@@ -55,18 +60,18 @@ describe('migrateStore', () => {
       user: {},
       phase: {},
       days: {},
-      workouts: { liftA: [], liftB: [], morning: [], evening: [], custom: [] },
+      workouts: { liftA: [], liftB: [], custom: [] },
       log: [],
       prs: {},
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const v7 = migrateStore(structuredClone(base), 1) as any;
+    const v8 = migrateStore(structuredClone(base), 1) as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const again = migrateStore(structuredClone(v7), 7) as any;
-    expect(again.metrics).toEqual(v7.metrics);
-    expect(again.activeSession).toEqual(v7.activeSession);
-    expect(again.nextLift).toBe(v7.nextLift);
-    expect(again.equipmentProfile).toEqual(v7.equipmentProfile);
+    const again = migrateStore(structuredClone(v8), 8) as any;
+    expect(again.metrics).toEqual(v8.metrics);
+    expect(again.activeSession).toEqual(v8.activeSession);
+    expect(again.nextLift).toBe(v8.nextLift);
+    expect(again.equipmentProfile).toEqual(v8.equipmentProfile);
   });
 
   it('does not throw on an empty/garbage blob', () => {
@@ -124,5 +129,38 @@ describe('migrateStore', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const out = migrateStore(structuredClone(v6), 6) as any;
     expect(out.prs['some-lift']).toEqual({ value: 80, date: '2026-04-01' });
+  });
+
+  it('v7 → v8 flattens blocks.training → training and drops chore blocks', () => {
+    const v7 = {
+      user: {}, phase: {}, days: {
+        '2026-05-01': {
+          blocks: {
+            training: { checked: [0, 1, 2], total: 5 },
+            coach: { checked: [0, 1, 2, 3, 4, 5], total: 6 },
+            morning: { checked: [], total: 11 },
+            work: { checked: [], total: 6 },
+            evening: { checked: [], total: 6 },
+          },
+          completionPct: 26,
+          streakDay: 0,
+        },
+      },
+      workouts: { liftA: [], liftB: [], morning: [{ id: 'old' }], evening: [{ id: 'old2' }], custom: [] },
+      log: [], prs: {}, equipmentProfile: [], savedWorkouts: [], activeSession: null, metrics: [], nextLift: 'A',
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const out = migrateStore(structuredClone(v7), 7) as any;
+    const day = out.days['2026-05-01'];
+    expect(day.training).toEqual({ checked: [0, 1, 2], total: 5 });
+    expect(day.blocks).toBeUndefined();
+    // completionPct recomputed as training-only: 3/5 = 60% (was 26% across 34 chores)
+    expect(day.completionPct).toBe(60);
+    // chore-block workout lists dropped
+    expect(out.workouts.morning).toBeUndefined();
+    expect(out.workouts.evening).toBeUndefined();
+    // user-built workouts preserved
+    expect(out.workouts.liftA).toEqual([]);
+    expect(out.workouts.custom).toEqual([]);
   });
 });

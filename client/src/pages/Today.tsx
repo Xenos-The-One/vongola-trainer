@@ -1,25 +1,23 @@
-// Today — Main screen with date, phase, status pills, companion, and task blocks
-// Design: "Ember & Parchment" — warm dark, serif date, editorial flow
+// Today — workout-launcher screen.
+// Post-overhaul: companion + the day's workout preview + a single Start CTA.
+// Chore blocks (morning / work / evening / coach) and their pill-strip header
+// are gone — Vongola Trainer is a training tracker now, not a daily-habits OS.
 
 import { useMemo } from 'react';
 import { useLocation } from 'wouter';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw, Wand2 } from 'lucide-react';
 import CompanionCard from '@/components/CompanionCard';
-import TaskBlock from '@/components/TaskBlock';
-import StatusPill from '@/components/StatusPill';
+import TodaysWorkoutCard from '@/components/TodaysWorkoutCard';
 import PhaseBadge from '@/components/PhaseBadge';
 import ProgressRing from '@/components/ProgressRing';
 import TimerFab from '@/components/TimerFab';
 import { useStore } from '@/lib/storage';
-import { COACH_FOCUS_ITEMS } from '@/lib/seed';
 import { weeksSince } from '@/lib/date';
 
 function formatDate(): string {
   const d = new Date();
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
-
-const WORK_ITEMS = ['Stand & stretch', 'Walk break', 'Posture check', 'Eye rest', 'Hydrate', 'Deep breath'];
 
 export default function Today() {
   const phase = useStore((s) => s.phase);
@@ -36,27 +34,23 @@ export default function Today() {
 
   const liftExercises = nextLift === 'B' ? workouts.liftB : workouts.liftA;
   const liftLabel = `Lift ${nextLift}`;
+  const liftSubtitle = nextLift === 'B' ? 'Pull + Hinge' : 'Push + Squat';
+  const hasWorkout = liftExercises.length > 0;
 
   const startLift = () => {
     startSession({ source: 'lift', liftKey: nextLift, exercises: liftExercises });
     setLocation('/workout');
   };
 
-  const statusPills = [
-    { label: 'Train', emoji: '🏋', block: todayState.blocks.training },
-    { label: 'Coach', emoji: '🎯', block: todayState.blocks.coach },
-    { label: 'AM', emoji: '🌅', block: todayState.blocks.morning },
-    { label: 'Work', emoji: '💼', block: todayState.blocks.work },
-    { label: 'PM', emoji: '🌙', block: todayState.blocks.evening },
-  ];
+  const goGenerate = () => setLocation('/protocol');
 
   return (
     <div className="pb-24 pt-4">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div>
+      {/* Header — date + phase + the day's training ring */}
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1
-            className="text-2xl font-bold text-foreground"
+            className="text-xl font-bold leading-tight text-foreground"
             style={{ fontFamily: "'Playfair Display', serif" }}
           >
             {dateStr}
@@ -68,85 +62,48 @@ export default function Today() {
         <ProgressRing percent={pct} />
       </div>
 
-      {/* Status pills */}
-      <div className="mb-5 -mx-4 px-4">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {statusPills.map((pill) => {
-            const done = pill.block.checked.length;
-            const total = pill.block.total;
-            return (
-              <StatusPill
-                key={pill.label}
-                label={pill.label}
-                emoji={pill.emoji}
-                done={done}
-                total={total}
-                isComplete={total > 0 && done >= total}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Companion Card */}
+      {/* Companion */}
       <div className="mb-5">
         <CompanionCard />
       </div>
 
-      {/* Start / Resume workout */}
+      {/* Primary CTA — Start the workout, or Resume if one is in progress */}
       {activeSession ? (
         <button
           onClick={() => setLocation('/workout')}
-          className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--vt-accent)] bg-[var(--vt-accent)]/10 py-3 text-sm font-semibold text-foreground"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--vt-accent)] bg-[var(--vt-accent)]/10 py-3 text-sm font-semibold text-foreground"
         >
           <RotateCcw size={16} style={{ color: 'var(--vt-accent)' }} /> Resume workout
         </button>
-      ) : (
+      ) : hasWorkout ? (
         <button
           onClick={startLift}
-          className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-base font-semibold text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--vt-accent)' }}
         >
-          <Play size={16} /> Start {liftLabel}
+          <Play size={18} /> Start {liftLabel}
+        </button>
+      ) : (
+        // Empty state: no planned lift for today → push to the generator.
+        <button
+          onClick={goGenerate}
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-base font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: 'var(--vt-accent)' }}
+        >
+          <Wand2 size={18} /> Generate today's workout
         </button>
       )}
 
-      {/* Task Blocks */}
-      <div className="space-y-3">
-        <TaskBlock
-          title="Training"
-          subtitle={`~60 min · ${liftLabel}`}
-          blockKey="training"
-          items={liftExercises.map((e) => e.name)}
-          defaultExpanded={true}
+      {/* Today's workout preview — exercises with icons + info buttons */}
+      {hasWorkout && (
+        <TodaysWorkoutCard
+          title={liftLabel}
+          subtitle={`${liftSubtitle} · ~60 min`}
+          exercises={liftExercises}
         />
-        <TaskBlock
-          title="Coach's Focus — this week"
-          subtitle="Technique cues"
-          blockKey="coach"
-          items={COACH_FOCUS_ITEMS}
-        />
-        <TaskBlock
-          title="Morning Block"
-          subtitle="~25 min · Non-negotiable"
-          blockKey="morning"
-          items={workouts.morning.map((e) => e.name)}
-        />
-        <TaskBlock
-          title="Work Block"
-          subtitle="09:00–16:30 · every 45m"
-          blockKey="work"
-          items={WORK_ITEMS}
-        />
-        <TaskBlock
-          title="Evening Block"
-          subtitle="~15 min"
-          blockKey="evening"
-          items={workouts.evening.map((e) => e.name)}
-        />
-      </div>
+      )}
 
-      {/* Timer FAB */}
+      {/* Timer FAB stays — useful during a workout or for life timers */}
       <TimerFab />
     </div>
   );

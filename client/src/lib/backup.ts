@@ -128,8 +128,6 @@ function mergeOverDefaults(m: Record<string, unknown>): Record<string, unknown> 
     workouts: {
       liftA: wk('liftA'),
       liftB: wk('liftB'),
-      morning: wk('morning'),
-      evening: wk('evening'),
       custom: Array.isArray(w.custom) ? (w.custom as unknown[]) : [],
     },
   };

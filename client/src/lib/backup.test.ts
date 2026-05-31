@@ -48,7 +48,8 @@ describe('parseBackup', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const d = r.data as any;
       expect(Array.isArray(d.workouts.liftA)).toBe(true);
-      expect(Array.isArray(d.workouts.morning)).toBe(true);
+      expect(Array.isArray(d.workouts.liftB)).toBe(true);
+      expect(Array.isArray(d.workouts.custom)).toBe(true);
     }
   });
 

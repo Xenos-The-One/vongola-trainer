@@ -28,7 +28,7 @@ import { suggestNextLoad } from './overload';
 import { defaultWeightStep } from './units';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 function getTodayKey(): string {
   return todayKey();
@@ -36,41 +36,27 @@ function getTodayKey(): string {
 
 function createEmptyDayState(): DayState {
   return {
-    blocks: {
-      training: { checked: [], total: 5 },
-      coach: { checked: [], total: 6 },
-      morning: { checked: [], total: 11 },
-      work: { checked: [], total: 6 },
-      evening: { checked: [], total: 6 },
-    },
+    training: { checked: [], total: 5 },
     completionPct: 0,
     streakDay: 0,
   };
 }
 
-function computeCompletionPct(blocks: DayState['blocks']): number {
-  let done = 0;
-  let total = 0;
-  Object.values(blocks).forEach((block: BlockState) => {
-    done += block.checked.length;
-    total += block.total;
-  });
-  return total === 0 ? 0 : Math.round((done / total) * 100);
+/**
+ * Training-block completion % — the ONLY completion signal in the app post-
+ * chore-cleanup. Drives the ProgressRing, companion evolution, streak, and
+ * calendar heatmap. A rest day (training.total === 0) returns 100% credit so
+ * scheduled off-days don't break the streak; out-of-range counts are clamped.
+ */
+export function computeTrainingPct(training: BlockState | undefined): number {
+  if (!training || training.total === 0) return 100;
+  const done = Math.min(training.checked.length, training.total);
+  return Math.round((done / training.total) * 100);
 }
 
-/**
- * Training-block completion %. Drives companion evolution + streak — the
- * companion is your TRAINER, not your chore-list, so a perfect workout should
- * power up the sprite even if you haven't done morning/evening chores.
- *
- * A rest day (training.total === 0) returns 100: you completed your planned
- * training load, so you keep credit. Out-of-range checked counts are clamped.
- */
-export function computeTrainingPct(blocks: DayState['blocks']): number {
-  const t = blocks.training;
-  if (!t || t.total === 0) return 100;
-  const done = Math.min(t.checked.length, t.total);
-  return Math.round((done / t.total) * 100);
+/** Alias preserved during the chore-removal cleanup — same as training pct now. */
+function computeCompletionPct(training: BlockState | undefined): number {
+  return computeTrainingPct(training);
 }
 
 export function computeStreak(days: Record<string, DayState>): number {
@@ -85,7 +71,7 @@ export function computeStreak(days: Record<string, DayState>): number {
 
     if (i === 0 && !day) break; // today hasn't started
     if (!day) break;
-    const trainingPct = computeTrainingPct(day.blocks);
+    const trainingPct = computeTrainingPct(day.training);
     if (trainingPct < 75) {
       if (i === 0) continue; // today is in progress, check yesterday
       break;
@@ -96,10 +82,10 @@ export function computeStreak(days: Record<string, DayState>): number {
 }
 
 export interface StoreActions {
-  // Day management
+  // Day management — only training tasks exist now (post chore-removal).
   getTodayState: () => DayState;
-  toggleTask: (blockKey: keyof DayState['blocks'], index: number) => void;
-  setBlockTotal: (blockKey: keyof DayState['blocks'], total: number) => void;
+  toggleTrainingTask: (index: number) => void;
+  setTrainingTotal: (total: number) => void;
 
   // Log management
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => void;
@@ -168,26 +154,23 @@ export const useStore = create<AppStore>()(
         return state.days[key] || createEmptyDayState();
       },
 
-      toggleTask: (blockKey, index) => {
+      toggleTrainingTask: (index) => {
         const key = getTodayKey();
         set((state) => {
           const currentDay = state.days[key] || createEmptyDayState();
-          const block = currentDay.blocks[blockKey];
+          const block = currentDay.training;
           const wasChecked = block.checked.includes(index);
           const newChecked = wasChecked
             ? block.checked.filter((i) => i !== index)
             : [...block.checked, index].sort((a, b) => a - b);
 
-          const newBlocks = {
-            ...currentDay.blocks,
-            [blockKey]: { ...block, checked: newChecked },
-          };
+          const newTraining: BlockState = { ...block, checked: newChecked };
+          const completionPct = computeCompletionPct(newTraining);
 
-          const completionPct = computeCompletionPct(newBlocks);
-
-          // Flip nextLift when training block transitions to complete
+          // Flip nextLift when the training block transitions to complete so
+          // tomorrow's "Start Lift A/B" toggles correctly.
           let nextLift = state.nextLift;
-          if (blockKey === 'training' && block.total > 0) {
+          if (block.total > 0) {
             const wasComplete = block.checked.length >= block.total;
             const isComplete = newChecked.length >= block.total;
             if (!wasComplete && isComplete) {
@@ -197,7 +180,7 @@ export const useStore = create<AppStore>()(
 
           const provisionalDays = {
             ...state.days,
-            [key]: { blocks: newBlocks, completionPct, streakDay: 0 },
+            [key]: { training: newTraining, completionPct, streakDay: 0 },
           };
           const streakDay = computeStreak(provisionalDays);
 
@@ -211,28 +194,25 @@ export const useStore = create<AppStore>()(
         });
       },
 
-      setBlockTotal: (blockKey, total) => {
+      setTrainingTotal: (total) => {
         if (total < 0) return;
         const key = getTodayKey();
         const state = get();
         const currentDay = state.days[key] || createEmptyDayState();
-        const block = currentDay.blocks[blockKey];
-        if (block.total === total) return;
+        if (currentDay.training.total === total) return;
 
         set((s) => {
           const day = s.days[key] || createEmptyDayState();
-          const b = day.blocks[blockKey];
-          const newBlock: BlockState = {
+          const newTraining: BlockState = {
             total,
-            checked: b.checked.filter((i) => i < total),
+            checked: day.training.checked.filter((i) => i < total),
           };
-          const newBlocks = { ...day.blocks, [blockKey]: newBlock };
-          const completionPct = computeCompletionPct(newBlocks);
+          const completionPct = computeCompletionPct(newTraining);
 
           return {
             days: {
               ...s.days,
-              [key]: { ...day, blocks: newBlocks, completionPct },
+              [key]: { ...day, training: newTraining, completionPct },
             },
           };
         });
@@ -454,14 +434,14 @@ export const useStore = create<AppStore>()(
         const key = getTodayKey();
         set((state) => {
           const day = state.days[key] || createEmptyDayState();
-          const block = day.blocks.training;
+          const block = day.training;
           const wasComplete = block.total > 0 && block.checked.length >= block.total;
           const checked = Array.from({ length: block.total }, (_, i) => i);
-          const newBlocks = { ...day.blocks, training: { ...block, checked } };
-          const completionPct = computeCompletionPct(newBlocks);
+          const newTraining: BlockState = { ...block, checked };
+          const completionPct = computeCompletionPct(newTraining);
           let nextLift = state.nextLift;
           if (!wasComplete && block.total > 0) nextLift = nextLift === 'A' ? 'B' : 'A';
-          const provisionalDays = { ...state.days, [key]: { blocks: newBlocks, completionPct, streakDay: 0 } };
+          const provisionalDays = { ...state.days, [key]: { training: newTraining, completionPct, streakDay: 0 } };
           const streakDay = computeStreak(provisionalDays);
           return { days: { ...provisionalDays, [key]: { ...provisionalDays[key], streakDay } }, nextLift };
         });
@@ -516,9 +496,16 @@ export const useStore = create<AppStore>()(
 /**
  * Sequential, additive, idempotent store migration. Exported so the backup
  * import path can upgrade older backup files through the exact same pipeline.
+ *
+ * Note on typing: pre-v8 days had a `blocks: { training, coach, morning, work,
+ * evening }` shape that no longer exists in DayState. Older migration steps
+ * operate on `any` for the day node so they can read the deprecated shape;
+ * the v7→v8 step then folds `blocks.training` up to `day.training`.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function migrateStore(persistedState: unknown, version: number): AppStore {
-  const state = (persistedState as Partial<AppStore>) ?? {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const state = (persistedState as any) ?? {};
 
   // v1 → v2: BlockState shape changed from {done, total} to {checked, total}; nextLift added.
   if (version < 2) {
@@ -526,8 +513,8 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
       for (const dayKey of Object.keys(state.days)) {
         const day = state.days[dayKey];
         if (!day?.blocks) continue;
-        for (const blockKey of Object.keys(day.blocks) as (keyof DayState['blocks'])[]) {
-          const block = day.blocks[blockKey] as unknown as {
+        for (const blockKey of Object.keys(day.blocks)) {
+          const block = day.blocks[blockKey] as {
             done?: number;
             total?: number;
             checked?: number[];
@@ -613,6 +600,39 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
         current.bestSetWeight = best.weight;
         current.bestSetDate = best.date;
       }
+    }
+  }
+
+  // v7 → v8: chore blocks removed. The 5-block "life OS" model (training +
+  // coach + morning + work + evening) collapses to training-only. Fold
+  // blocks.training → day.training, drop the other 4 blocks, and recompute
+  // completionPct from training so the calendar heatmap reflects the new
+  // single-signal model. Also drops workouts.morning + workouts.evening
+  // (chore-block exercise lists that no longer have a UI surface).
+  if (version < 8) {
+    if (state.days) {
+      for (const dayKey of Object.keys(state.days)) {
+        const day = state.days[dayKey];
+        if (!day) continue;
+        const oldTraining = day.blocks?.training;
+        if (oldTraining && !day.training) {
+          day.training = { checked: oldTraining.checked ?? [], total: oldTraining.total ?? 0 };
+        }
+        delete day.blocks;
+        // Recompute completion as training-only so old "% across 34 chores"
+        // doesn't leak into the new calendar shading.
+        const t = day.training;
+        if (t) {
+          if (t.total === 0) day.completionPct = 100;
+          else day.completionPct = Math.round((Math.min(t.checked.length, t.total) / t.total) * 100);
+        } else {
+          day.completionPct = 0;
+        }
+      }
+    }
+    if (state.workouts) {
+      delete state.workouts.morning;
+      delete state.workouts.evening;
     }
   }
 

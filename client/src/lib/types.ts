@@ -37,13 +37,9 @@ export interface BlockState {
 }
 
 export interface DayState {
-  blocks: {
-    training: BlockState;
-    coach: BlockState;
-    morning: BlockState;
-    work: BlockState;
-    evening: BlockState;
-  };
+  /** Today's training items — one entry per exercise in the day's workout. */
+  training: BlockState;
+  /** % of training done (0..100); equals computeTrainingPct(training). */
   completionPct: number;
   streakDay: number;
 }
@@ -133,8 +129,6 @@ export interface Store {
   workouts: {
     liftA: Exercise[];
     liftB: Exercise[];
-    morning: Exercise[];
-    evening: Exercise[];
     custom: Exercise[];
   };
   log: LogEntry[];
@@ -170,19 +164,4 @@ export interface CompanionDef {
   speeches: string[];
 }
 
-// Task block types for Today screen
-export interface TaskItem {
-  id: string;
-  label: string;
-  done: boolean;
-  duration?: string;
-  subItems?: TaskItem[];
-}
 
-export interface TaskBlock {
-  id: string;
-  title: string;
-  subtitle: string;
-  blockKey: keyof DayState['blocks'];
-  items: TaskItem[];
-}

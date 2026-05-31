@@ -33,7 +33,7 @@ export default function CompanionCard() {
   const days = useStore(s => s.days);
 
   const todayState = getTodayState();
-  const trainingPct = computeTrainingPct(todayState.blocks);
+  const trainingPct = computeTrainingPct(todayState.training);
   const streak = getStreak();
 
   const companion = getCompanion(starter);

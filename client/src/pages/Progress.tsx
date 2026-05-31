@@ -37,13 +37,7 @@ export default function Progress() {
   // id → exercise lookup across the user's workout slices (fallback for the library).
   const workoutsMap = useMemo(() => {
     const map = new Map<string, Exercise>();
-    [
-      ...workouts.liftA,
-      ...workouts.liftB,
-      ...workouts.morning,
-      ...workouts.evening,
-      ...workouts.custom,
-    ].forEach((e) => {
+    [...workouts.liftA, ...workouts.liftB, ...workouts.custom].forEach((e) => {
       if (!map.has(e.id)) map.set(e.id, e);
     });
     return map;

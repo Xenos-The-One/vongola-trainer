@@ -23,13 +23,9 @@ export default function Log() {
   const allExercises = useMemo<PickerItem[]>(() => {
     const map = new Map<string, PickerItem>();
     for (const lib of EXERCISE_LIBRARY) map.set(lib.id, { id: lib.id, name: lib.name });
-    [
-      ...workouts.liftA,
-      ...workouts.liftB,
-      ...workouts.morning,
-      ...workouts.evening,
-      ...workouts.custom,
-    ].forEach((e) => map.set(e.id, { id: e.id, name: e.name }));
+    [...workouts.liftA, ...workouts.liftB, ...workouts.custom].forEach((e) =>
+      map.set(e.id, { id: e.id, name: e.name }),
+    );
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [workouts]);
 

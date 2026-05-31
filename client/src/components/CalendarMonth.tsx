@@ -35,9 +35,7 @@ export default function CalendarMonth() {
 
   const resolveName = (id: string): string =>
     getLibraryExercise(id)?.name ??
-    [...workouts.liftA, ...workouts.liftB, ...workouts.morning, ...workouts.evening, ...workouts.custom].find(
-      (e: Exercise) => e.id === id
-    )?.name ??
+    [...workouts.liftA, ...workouts.liftB, ...workouts.custom].find((e: Exercise) => e.id === id)?.name ??
     humanizeId(id);
 
   const todayStr = ymd(now.getFullYear(), now.getMonth(), now.getDate());
@@ -144,38 +142,18 @@ export default function CalendarMonth() {
                 })}
             </SheetTitle>
             <SheetDescription>
-              {selectedDay ? `${selectedDay.completionPct}% of the day completed` : 'No activity recorded'}
+              {selectedDay ? `${selectedDay.completionPct}% of today's workout done` : 'No activity recorded'}
             </SheetDescription>
           </SheetHeader>
 
           <div className="px-4 pb-6">
-            {/* Block completion summary */}
-            {selectedDay && (
-              <div className="mb-4 grid grid-cols-5 gap-1.5">
-                {(
-                  [
-                    ['Train', selectedDay.blocks.training],
-                    ['Coach', selectedDay.blocks.coach],
-                    ['AM', selectedDay.blocks.morning],
-                    ['Work', selectedDay.blocks.work],
-                    ['PM', selectedDay.blocks.evening],
-                  ] as const
-                ).map(([label, b]) => {
-                  const complete = b.total > 0 && b.checked.length >= b.total;
-                  return (
-                    <div
-                      key={label}
-                      className={`rounded-lg border p-1.5 text-center ${
-                        complete ? 'border-[var(--vt-accent)]/50 bg-[var(--vt-accent)]/10' : 'border-border'
-                      }`}
-                    >
-                      <p className="text-[10px] font-medium text-card-foreground">{label}</p>
-                      <p className="text-[9px] text-muted-foreground">
-                        {b.checked.length}/{b.total}
-                      </p>
-                    </div>
-                  );
-                })}
+            {/* Training completion summary */}
+            {selectedDay && selectedDay.training.total > 0 && (
+              <div className="mb-4 rounded-lg border border-border p-3 text-center">
+                <p className="text-xs font-medium text-card-foreground">Workout</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--vt-accent)' }}>
+                  {selectedDay.training.checked.length}/{selectedDay.training.total} exercises
+                </p>
               </div>
             )}
 

@@ -48,40 +48,6 @@ export const LIFT_B: Exercise[] = [
   makeExercise('Face Pulls', ['back-deltoids', 'upper-back'], ['band'], 3, '12-15'),
 ];
 
-// Morning + Evening blocks are mobility/recovery work — empty muscle arrays so
-// they never shade the heatmap or inflate volume.
-export const MORNING_BLOCK: Exercise[] = [
-  makeExercise('Cat-Cow Stretch', [], ['bodyweight'], 1, '10'),
-  makeExercise('World\'s Greatest Stretch', [], ['bodyweight'], 1, '5 each'),
-  makeExercise('90/90 Hip Switch', [], ['bodyweight'], 1, '8 each'),
-  makeExercise('Dead Bug', ['abs'], ['bodyweight'], 1, '10 each'),
-  makeExercise('Band Pull-Apart', ['back-deltoids', 'upper-back'], ['band'], 1, '15'),
-  makeExercise('Box Breathing', [], [], 1, '4 rounds'),
-  makeExercise('Diaphragmatic Breathing', [], [], 1, '3 min'),
-  makeExercise('Neck CARs', [], ['bodyweight'], 1, '5 each'),
-  makeExercise('Shoulder CARs', [], ['bodyweight'], 1, '5 each'),
-  makeExercise('Wrist CARs', [], ['bodyweight'], 1, '5 each'),
-  makeExercise('Standing Tall', [], ['bodyweight'], 1, '1 min'),
-];
-
-export const EVENING_BLOCK: Exercise[] = [
-  makeExercise('Foam Roll — Quads', [], ['foam roller'], 1, '60s each'),
-  makeExercise('Foam Roll — Upper Back', [], ['foam roller'], 1, '60s'),
-  makeExercise('Pigeon Stretch', [], ['bodyweight'], 1, '60s each'),
-  makeExercise('Couch Stretch', [], ['bodyweight'], 1, '60s each'),
-  makeExercise('Child\'s Pose', [], ['bodyweight'], 1, '90s'),
-  makeExercise('Legs Up Wall', [], ['bodyweight'], 1, '3 min'),
-];
-
-export const COACH_FOCUS_ITEMS = [
-  'Myofascial Release',
-  'Plank Progression',
-  'Standing Neutral',
-  'Hip Hinge Pattern',
-  'Scapular Control',
-  'Breathing Mechanics',
-];
-
 export function createDefaultStore(): Store {
   const today = todayKey();
   return {
@@ -94,7 +60,7 @@ export function createDefaultStore(): Store {
       units: 'kg',
     },
     phase: {
-      name: 'Phase 1 — Downregulate',
+      name: 'Phase 1 — Foundation',
       week: 1,
       startDate: today,
     },
@@ -102,8 +68,6 @@ export function createDefaultStore(): Store {
     workouts: {
       liftA: LIFT_A,
       liftB: LIFT_B,
-      morning: MORNING_BLOCK,
-      evening: EVENING_BLOCK,
       custom: [],
     },
     log: [],

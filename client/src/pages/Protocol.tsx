@@ -97,8 +97,6 @@ function PlanTab() {
   const sections: { title: string; category: keyof typeof workouts; list: Exercise[] }[] = [
     { title: 'Lift A — Push + Squat', category: 'liftA', list: workouts.liftA },
     { title: 'Lift B — Pull + Hinge', category: 'liftB', list: workouts.liftB },
-    { title: 'Morning Block', category: 'morning', list: workouts.morning },
-    { title: 'Evening Block', category: 'evening', list: workouts.evening },
   ];
 
   return (

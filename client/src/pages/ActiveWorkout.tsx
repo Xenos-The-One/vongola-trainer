@@ -62,7 +62,7 @@ export default function ActiveWorkout() {
 
   const handleFinish = () => {
     finishSession();
-    const trainingPct = computeTrainingPct(useStore.getState().getTodayState().blocks);
+    const trainingPct = computeTrainingPct(useStore.getState().getTodayState().training);
     if (trainingPct >= 100) {
       triggerFlameConfetti();
       if (navigator.vibrate) navigator.vibrate([50, 100, 50, 100, 50]);
