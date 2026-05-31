@@ -18,6 +18,7 @@ import type {
   ActiveExercise,
   ActiveSession,
   BodyMetric,
+  WeeklyPlan,
 } from './types';
 import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
@@ -28,7 +29,7 @@ import { suggestNextLoad } from './overload';
 import { defaultWeightStep } from './units';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 function getTodayKey(): string {
   return todayKey();
@@ -136,6 +137,10 @@ export interface StoreActions {
   // Body metrics
   upsertMetric: (metric: BodyMetric) => void;
   deleteMetric: (date: string) => void;
+
+  // Weekly plan
+  setWeeklyPlan: (plan: WeeklyPlan | null) => void;
+  advanceWeeklyPlan: () => void;
 
   // Streak
   getStreak: () => number;
@@ -466,7 +471,12 @@ export const useStore = create<AppStore>()(
             notes: ex.notes || undefined,
           });
         }
-        if (session.source === 'lift') get().completeTrainingBlock();
+        if (session.source === 'lift') {
+          get().completeTrainingBlock();
+          // Advance the rotating plan so tomorrow shows the next day in the cycle.
+          // No-op when no plan is active (covers the Lift A/B seeded default).
+          if (get().weeklyPlan) get().advanceWeeklyPlan();
+        }
         set({ activeSession: null });
       },
 
@@ -480,6 +490,17 @@ export const useStore = create<AppStore>()(
 
       deleteMetric: (date) =>
         set((state) => ({ metrics: state.metrics.filter((m) => m.date !== date) })),
+
+      setWeeklyPlan: (plan) => set(() => ({ weeklyPlan: plan })),
+
+      advanceWeeklyPlan: () =>
+        set((state) => {
+          if (!state.weeklyPlan) return {};
+          const n = state.weeklyPlan.days.length;
+          if (n === 0) return {};
+          const currentIndex = (state.weeklyPlan.currentIndex + 1) % n;
+          return { weeklyPlan: { ...state.weeklyPlan, currentIndex } };
+        }),
 
       getStreak: () => {
         return computeStreak(get().days);
@@ -601,6 +622,11 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
         current.bestSetDate = best.date;
       }
     }
+  }
+
+  // v8 → v9: weeklyPlan slice for the rotating-plan generator.
+  if (version < 9) {
+    if (state.weeklyPlan === undefined) state.weeklyPlan = null;
   }
 
   // v7 → v8: chore blocks removed. The 5-block "life OS" model (training +

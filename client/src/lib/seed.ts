@@ -77,5 +77,6 @@ export function createDefaultStore(): Store {
     savedWorkouts: [],
     activeSession: null,
     metrics: [],
+    weeklyPlan: null,
   };
 }
