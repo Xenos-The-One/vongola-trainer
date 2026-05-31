@@ -3,6 +3,7 @@
 // Pure client-side: Blob download for export, FileReader + validation for import.
 
 import { STORAGE_KEY, SCHEMA_VERSION, migrateStore } from './storage';
+import { createDefaultStore } from './seed';
 
 export interface BackupFile {
   app: 'vongola-trainer';
@@ -78,23 +79,60 @@ export function parseBackup(text: string): ParseResult {
     return { ok: false, error: 'Backup contains no data.' };
   }
 
-  // Lightweight shape guard on the critical slices.
+  // Must look at least plausibly like our store (one recognizable slice present),
+  // otherwise it's some other JSON file the user picked by mistake.
   const d = file.data as Record<string, unknown>;
-  const looksValid =
-    typeof d.user === 'object' &&
-    typeof d.days === 'object' &&
-    Array.isArray(d.log) &&
-    typeof d.workouts === 'object';
-  if (!looksValid) {
-    return { ok: false, error: 'Backup data is malformed (missing core fields).' };
+  const recognizable = ['days', 'log', 'workouts', 'user', 'metrics'].some((k) => k in d);
+  if (!recognizable) {
+    return { ok: false, error: 'Backup data is malformed (no recognizable fields).' };
   }
 
-  const data =
-    file.schemaVersion < SCHEMA_VERSION
-      ? migrateStore({ ...(file.data as object) }, file.schemaVersion)
-      : file.data;
+  // Always run the migration pipeline, then deep-merge over fresh defaults and
+  // coerce every slice to a safe shape. A partial or slightly-malformed backup
+  // therefore yields a VALID store (missing pieces defaulted) and can never
+  // crash the app on load or silently overwrite good data with junk.
+  const migrated = migrateStore({ ...(file.data as object) }, file.schemaVersion) as Record<string, unknown>;
+  return { ok: true, data: mergeOverDefaults(migrated) };
+}
 
-  return { ok: true, data };
+function asArray<T>(v: unknown): T[] {
+  return Array.isArray(v) ? (v as T[]) : [];
+}
+function asObject(v: unknown): Record<string, unknown> {
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+}
+
+/**
+ * Merge an imported (already-migrated) state over fresh defaults, coercing each
+ * slice so the result always satisfies the Store shape the app expects.
+ */
+function mergeOverDefaults(m: Record<string, unknown>): Record<string, unknown> {
+  const def = createDefaultStore() as unknown as Record<string, unknown>;
+  const w = asObject(m.workouts);
+  const defW = def.workouts as Record<string, unknown>;
+  const wk = (key: string) => (Array.isArray(w[key]) ? (w[key] as unknown[]) : (defW[key] as unknown[]));
+  const equip = asArray<string>(m.equipmentProfile);
+  return {
+    ...def,
+    ...m,
+    user: { ...(def.user as object), ...asObject(m.user) },
+    phase: { ...(def.phase as object), ...asObject(m.phase) },
+    days: asObject(m.days),
+    log: asArray(m.log),
+    prs: asObject(m.prs),
+    metrics: asArray(m.metrics),
+    savedWorkouts: asArray(m.savedWorkouts),
+    equipmentProfile: equip.length ? equip : (def.equipmentProfile as string[]),
+    nextLift: m.nextLift === 'A' || m.nextLift === 'B' ? m.nextLift : def.nextLift,
+    activeSession: m.activeSession ?? null,
+    workouts: {
+      liftA: wk('liftA'),
+      liftB: wk('liftB'),
+      morning: wk('morning'),
+      evening: wk('evening'),
+      custom: Array.isArray(w.custom) ? (w.custom as unknown[]) : [],
+    },
+  };
 }
 
 /** Overwrite all stored data with the given state and reload so the store rehydrates cleanly. */
