@@ -6,12 +6,21 @@ import { getEvolutionStage, getStatusMessage } from '@/lib/evolution';
 import { getCompanion } from '@/lib/companions';
 import { useStore, computeTrainingPct } from '@/lib/storage';
 
-function getSkyGradient(): string {
+/**
+ * Time-of-day sky gradient behind the companion. Light theme keeps the dawn /
+ * midday / dusk palettes (they already pair well with cream) but swaps the
+ * night gradient from deep navy to a moonlit lavender so it doesn't look like
+ * a dark hole punched into the light-themed page.
+ */
+function getSkyGradient(theme: 'dark' | 'light'): string {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 8) return 'linear-gradient(180deg, #FF9A56 0%, #FFD89B 40%, #87CEEB 100%)'; // morning amber
   if (hour >= 8 && hour < 17) return 'linear-gradient(180deg, #87CEEB 0%, #B8E0F0 50%, #5BAD5B 100%)'; // midday blue
   if (hour >= 17 && hour < 20) return 'linear-gradient(180deg, #FF7A45 0%, #FFB347 30%, #4A6741 100%)'; // dusk orange
-  return 'linear-gradient(180deg, #0F1729 0%, #1A2744 50%, #2D3B2D 100%)'; // night navy
+  // Night palette — branch on theme.
+  return theme === 'light'
+    ? 'linear-gradient(180deg, #B7B0D8 0%, #DCD4F2 45%, #9FBE9E 100%)' // moonlit lavender → soft sage
+    : 'linear-gradient(180deg, #0F1729 0%, #1A2744 50%, #2D3B2D 100%)'; // dark night navy
 }
 
 // Element-based sky tint color (low opacity overlay)
@@ -28,6 +37,7 @@ const ELEMENT_TINT: Record<string, string> = {
 export default function CompanionCard() {
   const nickname = useStore(s => s.user.nickname);
   const starter = useStore(s => s.user.starter);
+  const theme = useStore(s => s.user.theme);
   const getTodayState = useStore(s => s.getTodayState);
   const getStreak = useStore(s => s.getStreak);
   const days = useStore(s => s.days);
@@ -42,7 +52,9 @@ export default function CompanionCard() {
   const spriteUrl = companion.sprites[stage];
 
   const [speech, setSpeech] = useState<string | null>(null);
-  const skyGradient = useMemo(() => getSkyGradient(), []);
+  // Re-derive the gradient when the theme changes so flipping dark↔light
+  // updates the companion's sky in place instead of waiting for the next mount.
+  const skyGradient = useMemo(() => getSkyGradient(theme), [theme]);
 
   // Random speech bubble every 15-30 seconds
   useEffect(() => {

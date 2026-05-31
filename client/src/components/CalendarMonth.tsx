@@ -2,12 +2,13 @@
 // a workout was logged. Tapping a day opens a detail drawer. Lives in Progress → History.
 
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { useStore } from '@/lib/storage';
 import type { Exercise } from '@/lib/types';
 import { getLibraryExercise } from '@/lib/exercises';
 import { humanizeId } from '@/lib/utils';
 import { getHeatColor } from '@/lib/heat';
+import { toast } from 'sonner';
 import {
   Sheet,
   SheetContent,
@@ -15,6 +16,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import QuickLogForm from './QuickLogForm';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -32,6 +34,7 @@ export default function CalendarMonth() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showLogForm, setShowLogForm] = useState(false);
 
   const resolveName = (id: string): string =>
     getLibraryExercise(id)?.name ??
@@ -69,6 +72,33 @@ export default function CalendarMonth() {
   const selectedLogs = selectedDate ? log.filter((e) => e.date === selectedDate) : [];
 
   return (
+    <>
+      {/* Manual log-entry — replaces the removed Log tab. Auto-logging from
+          finishSession() covers the common path; this is for backfill. */}
+      <div className="mb-4 rounded-xl border border-border bg-card overflow-hidden">
+        <button
+          onClick={() => setShowLogForm((s) => !s)}
+          className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-secondary/30"
+          aria-expanded={showLogForm}
+        >
+          <div>
+            <h3 className="text-sm font-semibold text-card-foreground">Manually log an entry</h3>
+            <p className="text-[11px] text-muted-foreground">For workouts you finished without starting the live session.</p>
+          </div>
+          {showLogForm ? <X size={16} className="text-muted-foreground" /> : <Plus size={16} className="text-muted-foreground" />}
+        </button>
+        {showLogForm && (
+          <div className="border-t border-border px-4 py-3">
+            <QuickLogForm
+              onLogged={() => {
+                toast.success('Logged');
+                setShowLogForm(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
     <div className="rounded-xl border border-border bg-card p-4">
       {/* Month nav */}
       <div className="mb-3 flex items-center justify-between">
@@ -185,5 +215,6 @@ export default function CalendarMonth() {
         </SheetContent>
       </Sheet>
     </div>
+    </>
   );
 }

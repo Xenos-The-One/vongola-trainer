@@ -8,11 +8,9 @@ import Today from "./pages/Today";
 import { useStore } from "./lib/storage";
 
 // Today is the landing route — keep it eager so first paint never waits on a chunk.
-// Everything else is route-split: Log/Progress/Protocol/Settings/ActiveWorkout
-// each ship as their own chunk, downloaded on first navigation to that route.
-// Cuts initial JS shipped to first paint by ~60% and saves a meaningful amount
-// of parse time on cold loads.
-const Log = lazy(() => import("./pages/Log"));
+// Everything else is route-split: Progress/Protocol/Settings/ActiveWorkout each
+// ship as their own chunk, downloaded on first navigation to that route. Cuts
+// initial JS shipped to first paint by ~60% and saves meaningful parse time.
 const Progress = lazy(() => import("./pages/Progress"));
 const Protocol = lazy(() => import("./pages/Protocol"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -29,7 +27,6 @@ function Router() {
     <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/" component={Today} />
-        <Route path="/log" component={Log} />
         <Route path="/progress" component={Progress} />
         <Route path="/protocol" component={Protocol} />
         <Route path="/settings" component={Settings} />

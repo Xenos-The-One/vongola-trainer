@@ -1,12 +1,13 @@
-// BottomNav — 5-tab navigation (Today, Log, Progress, Protocol, Settings)
-// Design: "Ember & Parchment" — warm dark, subtle borders, orange accent for active
+// BottomNav — 4-tab navigation (Today, Progress, Protocol, Settings).
+// Log was merged into Progress > History after the overhaul — the calendar
+// drawer already shows logged exercises per day, and manual entry lives at
+// the top of the History view.
 
-import { Clock, FileText, Activity, BookOpen, Settings } from 'lucide-react';
+import { Clock, Activity, BookOpen, Settings } from 'lucide-react';
 import { useLocation } from 'wouter';
 
 const tabs = [
   { path: '/', label: 'Today', icon: Clock },
-  { path: '/log', label: 'Log', icon: FileText },
   { path: '/progress', label: 'Progress', icon: Activity },
   { path: '/protocol', label: 'Protocol', icon: BookOpen },
   { path: '/settings', label: 'Settings', icon: Settings },
