@@ -4,14 +4,16 @@
 
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
-import { X, ChevronDown, ChevronRight, Plus, Flag, Check } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Plus, Flag, Check, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useStore, computeTrainingPct } from '@/lib/storage';
 import { useElapsed, formatMMSS } from '@/hooks/useCountdown';
 import { getLastEntry, summarizeEntry } from '@/lib/lastPerformance';
 import { triggerFlameConfetti } from '@/lib/confetti';
+import { getLibraryExercise, type LibraryExercise } from '@/lib/exercises';
 import SetRow from '@/components/SetRow';
 import RestTimerBar from '@/components/RestTimerBar';
+import ExerciseDetail from '@/components/ExerciseDetail';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +44,7 @@ export default function ActiveWorkout() {
 
   const [showCancel, setShowCancel] = useState(false);
   const [showFinish, setShowFinish] = useState(false);
+  const [detail, setDetail] = useState<LibraryExercise | null>(null);
   const elapsed = useElapsed(session?.startedAt);
 
   // No session → bounce back to Today.
@@ -125,31 +128,46 @@ export default function ActiveWorkout() {
             const open = session.currentIndex === exIdx;
             const exDone = ex.sets.length > 0 && ex.sets.every((s) => s.done);
             const last = summarizeEntry(getLastEntry(log, ex.exerciseId), units);
+            const lib = getLibraryExercise(ex.exerciseId);
             return (
               <div key={`${ex.exerciseId}-${exIdx}`} className="overflow-hidden rounded-xl border border-border bg-card">
-                <button
-                  onClick={() => setCurrentExercise(open ? -1 : exIdx)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-secondary/50"
-                >
-                  {open ? (
-                    <ChevronDown size={16} className="shrink-0 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="truncate text-sm font-semibold text-card-foreground">{ex.name}</h3>
-                      {exDone && <Check size={14} className="shrink-0 text-[var(--vt-accent)]" />}
+                <div className="flex w-full items-center gap-3 px-4 py-3">
+                  <button
+                    onClick={() => setCurrentExercise(open ? -1 : exIdx)}
+                    aria-expanded={open}
+                    aria-label={open ? `Collapse ${ex.name}` : `Expand ${ex.name}`}
+                    className="flex flex-1 items-center gap-3 text-left hover:bg-secondary/50 -mx-4 px-4 py-1"
+                  >
+                    {open ? (
+                      <ChevronDown size={16} className="shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight size={16} className="shrink-0 text-muted-foreground" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate text-sm font-semibold text-card-foreground">{ex.name}</h3>
+                        {exDone && <Check size={14} className="shrink-0 text-[var(--vt-accent)]" />}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Target {ex.targetSets}×{ex.targetReps}
+                        {last ? ` · last ${last}` : ''}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      Target {ex.targetSets}×{ex.targetReps}
-                      {last ? ` · last ${last}` : ''}
-                    </p>
-                  </div>
+                  </button>
+                  {lib && (
+                    <button
+                      type="button"
+                      onClick={() => setDetail(lib)}
+                      aria-label={`How to do ${ex.name}`}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    >
+                      <Info size={16} />
+                    </button>
+                  )}
                   <span className="shrink-0 text-xs font-medium text-muted-foreground">
                     {ex.sets.filter((s) => s.done).length}/{ex.sets.length}
                   </span>
-                </button>
+                </div>
 
                 {open && (
                   <div className="border-t border-border px-4 py-3">
@@ -236,6 +254,8 @@ export default function ActiveWorkout() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ExerciseDetail exercise={detail} onClose={() => setDetail(null)} />
     </div>
   );
 }

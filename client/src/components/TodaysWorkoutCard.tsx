@@ -10,6 +10,7 @@ import { useStore } from '@/lib/storage';
 import { iconForExercise } from '@/lib/movementIcons';
 import { getLibraryExercise, type LibraryExercise } from '@/lib/exercises';
 import { summarizeEntry, getLastEntry } from '@/lib/lastPerformance';
+import { todayKey } from '@/lib/date';
 import ExerciseDetail from './ExerciseDetail';
 
 interface TodaysWorkoutCardProps {
@@ -21,10 +22,14 @@ interface TodaysWorkoutCardProps {
 export default function TodaysWorkoutCard({ title, subtitle, exercises }: TodaysWorkoutCardProps) {
   const log = useStore((s) => s.log);
   const units = useStore((s) => s.user.units ?? 'kg');
-  const todayState = useStore((s) => s.getTodayState());
+  // Subscribe to the underlying day slice directly. Calling
+  // `s.getTodayState()` inside the selector returned a fresh object every
+  // render, which Zustand interpreted as a state change → infinite loop.
+  const todayKeyStr = todayKey();
+  const todayDay = useStore((s) => s.days[todayKeyStr]);
   const [detail, setDetail] = useState<LibraryExercise | null>(null);
 
-  const checked = todayState.training.checked;
+  const checked = todayDay?.training?.checked ?? [];
 
   return (
     <>
