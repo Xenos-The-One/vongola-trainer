@@ -236,12 +236,12 @@ export default function MetricsPanel() {
               {chartData.length >= 2 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#8A8080' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#8A8080' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} width={36} />
+                    <CartesianGrid stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} domain={['auto', 'auto']} width={36} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#1C1820', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', fontSize: '12px' }}
-                      labelStyle={{ color: '#F5F0EB' }}
+                      contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--card-foreground)' }}
+                      labelStyle={{ color: 'var(--card-foreground)' }}
                     />
                     <Line type="monotone" dataKey="value" stroke="var(--vt-accent)" strokeWidth={2} dot={{ r: 3, fill: 'var(--vt-accent)' }} />
                   </LineChart>

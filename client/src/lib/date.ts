@@ -21,3 +21,19 @@ export function daysAgoKey(n: number): string {
   d.setDate(d.getDate() - n);
   return dateKey(d);
 }
+
+/**
+ * "Week N since start" — used by the phase badge so the displayed week
+ * actually advances over time instead of being a frozen seed value.
+ * Returns 1 on the start date and every day in that calendar week, 2 the
+ * following week, etc. Clamped to ≥ 1 (start in the future still reads as
+ * Week 1 rather than 0 or negative).
+ */
+export function weeksSince(startKey: string, today: Date = new Date()): number {
+  const [y, m, d] = startKey.split('-').map(Number);
+  if (!y || !m || !d) return 1;
+  const start = new Date(y, m - 1, d);
+  const ms = today.getTime() - start.getTime();
+  const weeks = Math.floor(ms / (1000 * 60 * 60 * 24 * 7));
+  return Math.max(1, weeks + 1);
+}

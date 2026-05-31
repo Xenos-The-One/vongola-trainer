@@ -195,11 +195,11 @@ export default function Progress() {
             <div className="h-32">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyData} barSize={32}>
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#8A8080' }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
                   <YAxis hide domain={[0, 100]} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#1C1820', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', fontSize: '12px' }}
-                    labelStyle={{ color: '#F5F0EB' }}
+                    contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '12px', color: 'var(--card-foreground)' }}
+                    labelStyle={{ color: 'var(--card-foreground)' }}
                   />
                   <Bar dataKey="pct" radius={[6, 6, 0, 0]}>
                     {weeklyData.map((entry, index) => (
@@ -234,7 +234,7 @@ export default function Progress() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={volumeData} barSize={24} layout="vertical">
                     <XAxis type="number" hide />
-                    <YAxis type="category" dataKey="muscle" tick={{ fontSize: 10, fill: '#8A8080' }} axisLine={false} tickLine={false} width={64} />
+                    <YAxis type="category" dataKey="muscle" tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} width={64} />
                     <Bar dataKey="volume" fill="var(--vt-accent)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

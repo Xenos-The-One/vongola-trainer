@@ -12,6 +12,7 @@ import ProgressRing from '@/components/ProgressRing';
 import TimerFab from '@/components/TimerFab';
 import { useStore } from '@/lib/storage';
 import { COACH_FOCUS_ITEMS } from '@/lib/seed';
+import { weeksSince } from '@/lib/date';
 
 function formatDate(): string {
   const d = new Date();
@@ -61,7 +62,7 @@ export default function Today() {
             {dateStr}
           </h1>
           <div className="mt-1.5">
-            <PhaseBadge name={phase.name} week={phase.week} />
+            <PhaseBadge name={phase.name} week={weeksSince(phase.startDate)} />
           </div>
         </div>
         <ProgressRing percent={pct} />

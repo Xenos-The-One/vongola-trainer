@@ -16,6 +16,7 @@ import {
 import { generateWorkout, SPLITS, type SplitType, type GeneratedWorkout } from '@/lib/generator';
 import { ROUTINES, routineDayToExercises } from '@/lib/routines';
 import { MUSCLE_DISPLAY } from '@/lib/muscles';
+import { weeksSince } from '@/lib/date';
 import SegmentedTabs from '@/components/SegmentedTabs';
 import MuscleMap from '@/components/MuscleMap';
 import ExerciseDetail from '@/components/ExerciseDetail';
@@ -103,7 +104,7 @@ function PlanTab() {
   return (
     <>
       <p className="text-sm text-muted-foreground mb-4">
-        {phase.name} · Week {phase.week}
+        {phase.name} · Week {weeksSince(phase.startDate)}
       </p>
       {sections.map((sec) => (
         <div key={sec.category} className="rounded-xl border border-border bg-card p-4 mb-4">
