@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import BottomNav from "./components/BottomNav";
 import Today from "./pages/Today";
@@ -10,6 +10,7 @@ import Log from "./pages/Log";
 import Progress from "./pages/Progress";
 import Protocol from "./pages/Protocol";
 import Settings from "./pages/Settings";
+import ActiveWorkout from "./pages/ActiveWorkout";
 import { useStore } from "./lib/storage";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/progress" component={Progress} />
       <Route path="/protocol" component={Protocol} />
       <Route path="/settings" component={Settings} />
+      <Route path="/workout" component={ActiveWorkout} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -30,6 +32,8 @@ function AppShell() {
   const accent = useStore((s) => s.user.accent);
   const fontSize = useStore((s) => s.user.fontSize);
   const theme = useStore((s) => s.user.theme);
+  const [location] = useLocation();
+  const fullscreen = location.startsWith("/workout");
 
   // Drive theme + accent + fontSize on <html> so the whole viewport (including
   // anything outside the 480px container) follows the user's settings.
@@ -40,6 +44,11 @@ function AppShell() {
     root.dataset.accent = accent;
     root.dataset.fontsize = fontSize;
   }, [theme, accent, fontSize]);
+
+  // Active Workout is a focus-mode, full-screen route — no container chrome or nav.
+  if (fullscreen) {
+    return <Router />;
+  }
 
   return (
     <div className="min-h-screen">

@@ -76,6 +76,36 @@ export interface SavedWorkout {
   exercises: Exercise[];
 }
 
+// --- Active workout session (full-screen live logging) ---
+
+export interface ActiveSet {
+  reps: number;
+  weight: number;
+  rpe?: number;
+  done: boolean;
+}
+
+export interface ActiveExercise {
+  exerciseId: string;
+  name: string;
+  targetSets: number;
+  targetReps: string;
+  sets: ActiveSet[];
+  notes?: string;
+}
+
+export type ActiveSource = 'lift' | 'generated' | 'routine' | 'custom';
+
+export interface ActiveSession {
+  startedAt: number; // epoch ms
+  source: ActiveSource;
+  liftKey?: LiftKey; // set when source === 'lift' → completes the training block + flips nextLift
+  exercises: ActiveExercise[];
+  currentIndex: number;
+  restEndsAt?: number; // absolute epoch ms; undefined = not resting (survives refresh)
+  restPreset: number; // seconds, default 90
+}
+
 export interface Store {
   user: UserSettings;
   phase: PhaseInfo;
@@ -94,6 +124,8 @@ export interface Store {
   equipmentProfile: string[];
   /** Saved/generated workouts the user can load or start. */
   savedWorkouts: SavedWorkout[];
+  /** In-progress live workout. Persisted so a mid-workout refresh/close survives. */
+  activeSession: ActiveSession | null;
 }
 
 // Companion system types

@@ -14,12 +14,16 @@ import type {
   BlockState,
   LiftKey,
   SavedWorkout,
+  ActiveSet,
+  ActiveExercise,
+  ActiveSession,
 } from './types';
 import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
+import { getLastEntry, parseFirstRep } from './lastPerformance';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 function getTodayKey(): string {
   return new Date().toISOString().split('T')[0];
@@ -103,6 +107,22 @@ export interface StoreActions {
   saveWorkout: (workout: Omit<SavedWorkout, 'id' | 'createdAt'>) => string;
   deleteSavedWorkout: (id: string) => void;
   loadWorkoutIntoLift: (lift: LiftKey, exercises: Exercise[]) => void;
+
+  // Active workout session
+  startSession: (input: { source: ActiveSession['source']; liftKey?: LiftKey; exercises: Exercise[] }) => void;
+  updateActiveSet: (exIdx: number, setIdx: number, patch: Partial<ActiveSet>) => void;
+  toggleSetDone: (exIdx: number, setIdx: number) => void;
+  addActiveSet: (exIdx: number) => void;
+  removeActiveSet: (exIdx: number, setIdx: number) => void;
+  setCurrentExercise: (idx: number) => void;
+  setActiveNotes: (exIdx: number, notes: string) => void;
+  startRest: (seconds?: number) => void;
+  adjustRest: (deltaSec: number) => void;
+  stopRest: () => void;
+  setRestPreset: (seconds: number) => void;
+  completeTrainingBlock: () => void;
+  finishSession: () => void;
+  cancelSession: () => void;
 
   // Streak
   getStreak: () => number;
@@ -263,6 +283,155 @@ export const useStore = create<AppStore>()(
           workouts: { ...state.workouts, [lift === 'A' ? 'liftA' : 'liftB']: exercises },
         })),
 
+      startSession: ({ source, liftKey, exercises }) => {
+        const log = get().log;
+        const active: ActiveExercise[] = exercises.map((ex) => {
+          const last = getLastEntry(log, ex.id);
+          const targetSets = Math.max(1, ex.sets || 1);
+          const sets: ActiveSet[] = Array.from({ length: targetSets }, (_, i) => ({
+            reps: last?.sets[i]?.reps ?? last?.sets[0]?.reps ?? parseFirstRep(ex.reps),
+            weight: last?.sets[i]?.weight ?? last?.sets[0]?.weight ?? ex.targetWeight ?? 0,
+            rpe: last?.sets[i]?.rpe ?? last?.sets[0]?.rpe,
+            done: false,
+          }));
+          return { exerciseId: ex.id, name: ex.name, targetSets, targetReps: ex.reps, sets };
+        });
+        set({
+          activeSession: {
+            startedAt: Date.now(),
+            source,
+            liftKey,
+            exercises: active,
+            currentIndex: 0,
+            restPreset: 90,
+          },
+        });
+      },
+
+      updateActiveSet: (exIdx, setIdx, patch) =>
+        set((s) => {
+          if (!s.activeSession) return {};
+          const exercises = s.activeSession.exercises.map((ex, i) =>
+            i !== exIdx
+              ? ex
+              : { ...ex, sets: ex.sets.map((st, j) => (j !== setIdx ? st : { ...st, ...patch })) }
+          );
+          return { activeSession: { ...s.activeSession, exercises } };
+        }),
+
+      toggleSetDone: (exIdx, setIdx) =>
+        set((s) => {
+          if (!s.activeSession) return {};
+          let nowDone = false;
+          const exercises = s.activeSession.exercises.map((ex, i) =>
+            i !== exIdx
+              ? ex
+              : {
+                  ...ex,
+                  sets: ex.sets.map((st, j) => {
+                    if (j !== setIdx) return st;
+                    nowDone = !st.done;
+                    return { ...st, done: nowDone };
+                  }),
+                }
+          );
+          // Auto-start rest when a set is completed (not when un-checking).
+          const restEndsAt = nowDone
+            ? Date.now() + s.activeSession.restPreset * 1000
+            : s.activeSession.restEndsAt;
+          return { activeSession: { ...s.activeSession, exercises, restEndsAt } };
+        }),
+
+      addActiveSet: (exIdx) =>
+        set((s) => {
+          if (!s.activeSession) return {};
+          const exercises = s.activeSession.exercises.map((ex, i) => {
+            if (i !== exIdx) return ex;
+            const last = ex.sets[ex.sets.length - 1];
+            return {
+              ...ex,
+              sets: [...ex.sets, { reps: last?.reps ?? 10, weight: last?.weight ?? 0, rpe: last?.rpe, done: false }],
+            };
+          });
+          return { activeSession: { ...s.activeSession, exercises } };
+        }),
+
+      removeActiveSet: (exIdx, setIdx) =>
+        set((s) => {
+          if (!s.activeSession) return {};
+          const exercises = s.activeSession.exercises.map((ex, i) =>
+            i !== exIdx ? ex : { ...ex, sets: ex.sets.filter((_, j) => j !== setIdx) }
+          );
+          return { activeSession: { ...s.activeSession, exercises } };
+        }),
+
+      setCurrentExercise: (idx) =>
+        set((s) => (s.activeSession ? { activeSession: { ...s.activeSession, currentIndex: idx } } : {})),
+
+      setActiveNotes: (exIdx, notes) =>
+        set((s) => {
+          if (!s.activeSession) return {};
+          const exercises = s.activeSession.exercises.map((ex, i) => (i !== exIdx ? ex : { ...ex, notes }));
+          return { activeSession: { ...s.activeSession, exercises } };
+        }),
+
+      startRest: (seconds) =>
+        set((s) =>
+          s.activeSession
+            ? { activeSession: { ...s.activeSession, restEndsAt: Date.now() + (seconds ?? s.activeSession.restPreset) * 1000 } }
+            : {}
+        ),
+
+      adjustRest: (deltaSec) =>
+        set((s) => {
+          if (!s.activeSession?.restEndsAt) return {};
+          const restEndsAt = Math.max(Date.now(), s.activeSession.restEndsAt + deltaSec * 1000);
+          return { activeSession: { ...s.activeSession, restEndsAt } };
+        }),
+
+      stopRest: () =>
+        set((s) => (s.activeSession ? { activeSession: { ...s.activeSession, restEndsAt: undefined } } : {})),
+
+      setRestPreset: (seconds) =>
+        set((s) => (s.activeSession ? { activeSession: { ...s.activeSession, restPreset: seconds } } : {})),
+
+      completeTrainingBlock: () => {
+        const key = getTodayKey();
+        set((state) => {
+          const day = state.days[key] || createEmptyDayState();
+          const block = day.blocks.training;
+          const wasComplete = block.total > 0 && block.checked.length >= block.total;
+          const checked = Array.from({ length: block.total }, (_, i) => i);
+          const newBlocks = { ...day.blocks, training: { ...block, checked } };
+          const completionPct = computeCompletionPct(newBlocks);
+          let nextLift = state.nextLift;
+          if (!wasComplete && block.total > 0) nextLift = nextLift === 'A' ? 'B' : 'A';
+          const provisionalDays = { ...state.days, [key]: { blocks: newBlocks, completionPct, streakDay: 0 } };
+          const streakDay = computeStreak(provisionalDays);
+          return { days: { ...provisionalDays, [key]: { ...provisionalDays[key], streakDay } }, nextLift };
+        });
+      },
+
+      finishSession: () => {
+        const session = get().activeSession;
+        if (!session) return;
+        const date = getTodayKey();
+        for (const ex of session.exercises) {
+          const doneSets = ex.sets.filter((st) => st.done);
+          if (doneSets.length === 0) continue;
+          get().addLogEntry({
+            date,
+            exerciseId: ex.exerciseId,
+            sets: doneSets.map((st) => ({ reps: st.reps, weight: st.weight, rpe: st.rpe })),
+            notes: ex.notes || undefined,
+          });
+        }
+        if (session.source === 'lift') get().completeTrainingBlock();
+        set({ activeSession: null });
+      },
+
+      cancelSession: () => set({ activeSession: null }),
+
       getStreak: () => {
         return computeStreak(get().days);
       },
@@ -339,6 +508,11 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
     if (!Array.isArray(state.savedWorkouts)) {
       state.savedWorkouts = [];
     }
+  }
+
+  // v4 → v5: active workout session slice (nullable add).
+  if (version < 5) {
+    if (state.activeSession === undefined) state.activeSession = null;
   }
 
   return state as AppStore;

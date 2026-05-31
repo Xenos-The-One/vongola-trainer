@@ -2,6 +2,8 @@
 // Design: "Ember & Parchment" — warm dark, serif date, editorial flow
 
 import { useMemo } from 'react';
+import { useLocation } from 'wouter';
+import { Play, RotateCcw } from 'lucide-react';
 import CompanionCard from '@/components/CompanionCard';
 import TaskBlock from '@/components/TaskBlock';
 import StatusPill from '@/components/StatusPill';
@@ -23,6 +25,9 @@ export default function Today() {
   const getTodayState = useStore((s) => s.getTodayState);
   const workouts = useStore((s) => s.workouts);
   const nextLift = useStore((s) => s.nextLift);
+  const activeSession = useStore((s) => s.activeSession);
+  const startSession = useStore((s) => s.startSession);
+  const [, setLocation] = useLocation();
 
   const todayState = getTodayState();
   const pct = todayState.completionPct;
@@ -30,6 +35,11 @@ export default function Today() {
 
   const liftExercises = nextLift === 'B' ? workouts.liftB : workouts.liftA;
   const liftLabel = `Lift ${nextLift}`;
+
+  const startLift = () => {
+    startSession({ source: 'lift', liftKey: nextLift, exercises: liftExercises });
+    setLocation('/workout');
+  };
 
   const statusPills = [
     { label: 'Train', emoji: '🏋', block: todayState.blocks.training },
@@ -81,6 +91,24 @@ export default function Today() {
       <div className="mb-5">
         <CompanionCard />
       </div>
+
+      {/* Start / Resume workout */}
+      {activeSession ? (
+        <button
+          onClick={() => setLocation('/workout')}
+          className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--vt-accent)] bg-[var(--vt-accent)]/10 py-3 text-sm font-semibold text-foreground"
+        >
+          <RotateCcw size={16} style={{ color: 'var(--vt-accent)' }} /> Resume workout
+        </button>
+      ) : (
+        <button
+          onClick={startLift}
+          className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: 'var(--vt-accent)' }}
+        >
+          <Play size={16} /> Start {liftLabel}
+        </button>
+      )}
 
       {/* Task Blocks */}
       <div className="space-y-3">

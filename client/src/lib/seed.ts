@@ -109,5 +109,6 @@ export function createDefaultStore(): Store {
     nextLift: 'A',
     equipmentProfile: ['dumbbell', 'band', 'pull-up bar', 'bodyweight'],
     savedWorkouts: [],
+    activeSession: null,
   };
 }
