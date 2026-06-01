@@ -16,7 +16,12 @@ export default defineConfig({
       injectRegister: "auto",
       manifest: false, // keep the existing hand-authored manifest + <link> in index.html
       workbox: {
-        globPatterns: ["**/*.{js,css,html,png,svg,ico,woff,woff2}"],
+        // jpg/jpeg added so the ~8MB of exercise demo photos under
+        // public/exercises/ are precached for true offline use at the gym.
+        globPatterns: ["**/*.{js,css,html,png,jpg,jpeg,svg,ico,woff,woff2}"],
+        // Bumped from the 2MB default headroom — the largest single asset is
+        // still tiny (~70KB/photo), but the total precache manifest is larger.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         navigateFallback: "/index.html",
       },

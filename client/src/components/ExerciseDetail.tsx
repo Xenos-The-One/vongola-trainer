@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import MuscleMap from './MuscleMap';
 import { MUSCLE_DISPLAY, type MuscleSlug } from '@/lib/muscles';
 import { formVideoUrl, hasCuratedVideo, type LibraryExercise } from '@/lib/exercises';
+import { exerciseImages } from '@/lib/exerciseImages';
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
@@ -22,6 +23,8 @@ export default function ExerciseDetail({
   exercise: LibraryExercise | null;
   onClose: () => void;
 }) {
+  const images = exercise ? exerciseImages(exercise.id) : [];
+
   return (
     <Dialog open={!!exercise} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[88vh] overflow-y-auto">
@@ -31,6 +34,25 @@ export default function ExerciseDetail({
               <DialogTitle style={{ fontFamily: "'Playfair Display', serif" }}>{exercise.name}</DialogTitle>
               <DialogDescription>{exercise.cue}</DialogDescription>
             </DialogHeader>
+
+            {/* Demonstration photos — start + end position (free-exercise-db). */}
+            {images.length > 0 && (
+              <div className={`grid gap-2 ${images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {images.map((src, i) => (
+                  <div key={src} className="relative overflow-hidden rounded-lg border border-border bg-white">
+                    <img
+                      src={src}
+                      alt={`${exercise.name} — ${i === 0 ? 'start' : 'end'} position`}
+                      loading="lazy"
+                      className="h-40 w-full object-cover"
+                    />
+                    <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white">
+                      {images.length > 1 ? (i === 0 ? 'Start' : 'End') : 'Demo'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-1.5">
               <Chip>{exercise.category}</Chip>

@@ -10,6 +10,7 @@ import { useStore } from '@/lib/storage';
 import { iconForExercise } from '@/lib/movementIcons';
 import { getLibraryExercise, type LibraryExercise } from '@/lib/exercises';
 import { summarizeEntry, getLastEntry } from '@/lib/lastPerformance';
+import { exerciseImages } from '@/lib/exerciseImages';
 import { todayKey } from '@/lib/date';
 import ExerciseDetail from './ExerciseDetail';
 
@@ -47,9 +48,20 @@ export default function TodaysWorkoutCard({ title, subtitle, exercises }: Todays
             const last = summarizeEntry(getLastEntry(log, ex.id), units);
             const isChecked = checked.includes(i);
             const target = ex.targetWeight ? `${ex.sets}×${ex.reps} @ ${ex.targetWeight}${units}` : `${ex.sets}×${ex.reps}`;
+            const thumb = exerciseImages(ex.id)[0];
             return (
               <li key={`${ex.id}-${i}`} className="flex items-center gap-3 px-4 py-3">
-                <Icon size={20} className={isChecked ? 'text-[var(--vt-accent)]' : 'text-muted-foreground'} aria-hidden="true" />
+                {thumb ? (
+                  <img
+                    src={thumb}
+                    alt=""
+                    loading="lazy"
+                    aria-hidden="true"
+                    className={`h-10 w-10 shrink-0 rounded-md border border-border object-cover ${isChecked ? 'opacity-50' : ''}`}
+                  />
+                ) : (
+                  <Icon size={20} className={isChecked ? 'text-[var(--vt-accent)]' : 'text-muted-foreground'} aria-hidden="true" />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm font-medium ${isChecked ? 'text-muted-foreground line-through' : 'text-card-foreground'}`}>
                     {ex.name}
