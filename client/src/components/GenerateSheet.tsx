@@ -23,6 +23,9 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
   const log = useStore((s) => s.log);
   const setWeeklyPlan = useStore((s) => s.setWeeklyPlan);
   const savedWorkouts = useStore((s) => s.savedWorkouts);
+  const savedPlans = useStore((s) => s.savedPlans);
+  const loadSavedPlan = useStore((s) => s.loadSavedPlan);
+  const deleteSavedPlan = useStore((s) => s.deleteSavedPlan);
 
   const [mode, setMode] = useState<Mode>('today');
   const [days, setDays] = useState<number | null>(null);
@@ -149,7 +152,45 @@ export default function GenerateSheet({ open, onOpenChange }: GenerateSheetProps
             </button>
           </div>
 
-          {/* Saved workouts — load one as today's plan instead of generating fresh. */}
+          {/* Saved PLANS — multi-day plans the user named and kept. */}
+          {savedPlans.length > 0 && (
+            <div className="mt-5 border-t border-border pt-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Saved plans</p>
+              <div className="space-y-1.5">
+                {savedPlans.slice(0, 6).map((sp) => (
+                  <div key={sp.id} className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        loadSavedPlan(sp.id);
+                        reset();
+                        onOpenChange(false);
+                      }}
+                      className="flex flex-1 items-center justify-between rounded-lg border border-border px-3 py-2 text-left transition-colors hover:border-[var(--vt-accent)]/40"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-card-foreground truncate">{sp.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {sp.plan.daysPerWeek === 1 ? 'Single day' : `${sp.plan.daysPerWeek} days/week`} · saved {sp.savedAt}
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-medium" style={{ color: 'var(--vt-accent)' }}>Load</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteSavedPlan(sp.id)}
+                      aria-label={`Delete ${sp.name}`}
+                      className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Saved single workouts — load one as today's plan instead of generating fresh. */}
           {savedWorkouts.length > 0 && (
             <div className="mt-5 border-t border-border pt-3">
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Or load a saved workout</p>

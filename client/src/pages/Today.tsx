@@ -5,7 +5,8 @@
 
 import { useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { Play, RotateCcw, Wand2 } from 'lucide-react';
+import { Play, RotateCcw, Wand2, Bookmark } from 'lucide-react';
+import { toast } from 'sonner';
 import CompanionCard from '@/components/CompanionCard';
 import TodaysWorkoutCard from '@/components/TodaysWorkoutCard';
 import GenerateSheet from '@/components/GenerateSheet';
@@ -15,6 +16,16 @@ import TimerFab from '@/components/TimerFab';
 import { useStore } from '@/lib/storage';
 import { weeksSince } from '@/lib/date';
 import { planDayForToday } from '@/lib/weeklyPlan';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 function formatDate(): string {
   const d = new Date();
@@ -29,8 +40,11 @@ export default function Today() {
   const activeSession = useStore((s) => s.activeSession);
   const startSession = useStore((s) => s.startSession);
   const weeklyPlan = useStore((s) => s.weeklyPlan);
+  const saveCurrentPlan = useStore((s) => s.saveCurrentPlan);
   const [, setLocation] = useLocation();
   const [showGen, setShowGen] = useState(false);
+  const [showSavePlan, setShowSavePlan] = useState(false);
+  const [planName, setPlanName] = useState('');
 
   const todayState = getTodayState();
   const pct = todayState.completionPct;
@@ -114,15 +128,63 @@ export default function Today() {
         </div>
       )}
 
-      {/* Secondary action — open the generate sheet to swap today's plan or build a fresh week */}
-      <button
-        onClick={() => setShowGen(true)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[var(--vt-accent)]/40 hover:text-foreground"
-      >
-        <Wand2 size={13} /> {weeklyPlan ? 'Regenerate plan' : 'Plan my week'}
-      </button>
+      {/* Secondary actions — regenerate, and save plan for later if one is active */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowGen(true)}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[var(--vt-accent)]/40 hover:text-foreground"
+        >
+          <Wand2 size={13} /> {weeklyPlan ? 'Regenerate plan' : 'Plan my week'}
+        </button>
+        {weeklyPlan && (
+          <button
+            onClick={() => {
+              setPlanName(weeklyPlan.days[0]?.title ?? '');
+              setShowSavePlan(true);
+            }}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-[var(--vt-accent)]/40 hover:text-foreground"
+            aria-label="Save this plan for later"
+          >
+            <Bookmark size={13} /> Save plan
+          </button>
+        )}
+      </div>
 
       <GenerateSheet open={showGen} onOpenChange={setShowGen} />
+
+      {/* Save-plan name prompt */}
+      <AlertDialog open={showSavePlan} onOpenChange={setShowSavePlan}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save this plan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Give it a name so you can load it again later from the Generate sheet.
+              Regenerating won't touch saved plans.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <input
+            type="text"
+            value={planName}
+            onChange={(e) => setPlanName(e.target.value)}
+            placeholder="e.g. PPL — heavy week"
+            className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground"
+            maxLength={40}
+            autoFocus
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const id = saveCurrentPlan(planName);
+                if (id) toast.success('Plan saved');
+                setPlanName('');
+              }}
+            >
+              Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Timer FAB stays — useful during a workout or for life timers */}
       <TimerFab />

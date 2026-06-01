@@ -20,6 +20,7 @@ import type {
   BodyMetric,
   WeeklyPlan,
   CustomExercise,
+  SavedPlan,
 } from './types';
 import { createDefaultStore } from './seed';
 import { normalizeMuscles } from './muscles';
@@ -30,7 +31,7 @@ import { suggestNextLoad } from './overload';
 import { defaultWeightStep } from './units';
 
 export const STORAGE_KEY = 'vongola-trainer-v1';
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 function getTodayKey(): string {
   return todayKey();
@@ -140,9 +141,14 @@ export interface StoreActions {
   upsertMetric: (metric: BodyMetric) => void;
   deleteMetric: (date: string) => void;
 
-  // Weekly plan
+  // Weekly plan (active rotating plan; overwritten on Generate)
   setWeeklyPlan: (plan: WeeklyPlan | null) => void;
   advanceWeeklyPlan: () => void;
+
+  // Saved plans (explicit user-named plans, survive Generate)
+  saveCurrentPlan: (name: string) => string | null;
+  loadSavedPlan: (id: string) => void;
+  deleteSavedPlan: (id: string) => void;
 
   // Custom exercises (user-added)
   addCustomExercise: (ex: Omit<CustomExercise, 'createdAt'>) => void;
@@ -534,6 +540,33 @@ export const useStore = create<AppStore>()(
           return { weeklyPlan: { ...state.weeklyPlan, currentIndex } };
         }),
 
+      saveCurrentPlan: (name) => {
+        const plan = get().weeklyPlan;
+        if (!plan) return null;
+        const trimmed = name.trim() || `Plan ${(get().savedPlans?.length ?? 0) + 1}`;
+        const id = `sp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const entry: SavedPlan = {
+          id,
+          name: trimmed,
+          savedAt: getTodayKey(),
+          // Reset currentIndex to 0 when saving so loads start at day 1.
+          plan: { ...plan, currentIndex: 0 },
+        };
+        set((state) => ({ savedPlans: [entry, ...(state.savedPlans ?? [])] }));
+        return id;
+      },
+
+      loadSavedPlan: (id) =>
+        set((state) => {
+          const sp = (state.savedPlans ?? []).find((s) => s.id === id);
+          if (!sp) return {};
+          // Deep-clone the plan so editing the active plan doesn't mutate the saved copy.
+          return { weeklyPlan: JSON.parse(JSON.stringify(sp.plan)) };
+        }),
+
+      deleteSavedPlan: (id) =>
+        set((state) => ({ savedPlans: (state.savedPlans ?? []).filter((s) => s.id !== id) })),
+
       addCustomExercise: (ex) =>
         set((state) => ({
           customExercises: [
@@ -684,6 +717,15 @@ export function migrateStore(persistedState: unknown, version: number): AppStore
     }
     if (!Array.isArray(state.customExercises)) {
       state.customExercises = [];
+    }
+  }
+
+  // v10 → v11: savedPlans slice. weeklyPlan is the *active* rotating plan
+  // (overwritten by Generate). savedPlans is the *library* of user-named
+  // plans that survive regeneration and can be loaded back.
+  if (version < 11) {
+    if (!Array.isArray(state.savedPlans)) {
+      state.savedPlans = [];
     }
   }
 

@@ -124,6 +124,9 @@ function mergeOverDefaults(m: Record<string, unknown>): Record<string, unknown> 
     savedWorkouts: asArray(m.savedWorkouts),
     equipmentProfile: equip.length ? equip : (def.equipmentProfile as string[]),
     equipmentMax: asObject(m.equipmentMax),
+    savedPlans: asArray(m.savedPlans),
+    customExercises: asArray(m.customExercises),
+    weeklyPlan: m.weeklyPlan ?? null,
     nextLift: m.nextLift === 'A' || m.nextLift === 'B' ? m.nextLift : def.nextLift,
     activeSession: m.activeSession ?? null,
     workouts: {
